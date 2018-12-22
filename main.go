@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -14,17 +15,40 @@ type PageData struct {
 
 func adminLoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
-		// load dashboard
+		if r.FormValue("action") == "Send Codes" {
+			fmt.Println("sent codes")
+		}
+		tmpl := template.Must(template.ParseFiles("tmpl/dashboard.html"))
+
+		data := PageData{
+			PageTitle: "Aston",
+		}
+
+		tmpl.Execute(w, data) // loads feedback form
 	} else {
-		// load login
+		tmpl := template.Must(template.ParseFiles("tmpl/admin.html"))
+
+		data := PageData{
+			PageTitle: "Aston",
+		}
+
+		tmpl.Execute(w, data)
 	}
 }
 
 func feedbackHandler(w http.ResponseWriter, r *http.Request) {
 	// parse and save feedback to db
+	r.ParseForm()
+	tmpl := template.Must(template.ParseFiles("tmpl/thanks.html"))
+
+	data := PageData{
+		PageTitle: "Aston",
+	}
+
+	tmpl.Execute(w, data)
 }
 
-func fromCreatorHandler(w http.ResponseWriter, r *http.Request) {
+func formCreatorHandler(w http.ResponseWriter, r *http.Request) {
 	// configure feedback form, save config to db
 	if r.Method == "POST" {
 		// save config
@@ -67,6 +91,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func resultsHandler(w http.ResponseWriter, r *http.Request) {
+
+}
+
 func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
@@ -74,7 +102,8 @@ func main() {
 	http.HandleFunc("/thanks", feedbackHandler)
 
 	http.HandleFunc("/admin", adminLoginHandler)
-	http.HandleFunc("/formCreator", fromCreatorHandler)
+	http.HandleFunc("/formCreator", formCreatorHandler)
+	http.HandleFunc("/results", resultsHandler)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

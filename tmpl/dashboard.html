@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Commendeer - {{.PageTitle}}</title>
+    <!--<meta name="viewport" content="width=device-width, initial-scale=1">-->
+    <link rel="stylesheet" type="text/css" href="static/css/dashboard.css" />
+    <!--<script src="main.js"></script>-->
+</head>
+<body>
+	<h1>Commendeer - {{.PageTitle}} - Dashboard</h1>
+	<form action="/admin" method="POST">
+		<input type="submit" name="action" value="Send Codes"><br>
+		<input type="submit" formaction="/formCreator" value="Create Form"><br>
+		<input type="submit" formaction="/results" value="View Results"><br>
+	</form>
+</body>
+</html>
