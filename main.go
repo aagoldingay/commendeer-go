@@ -14,7 +14,7 @@ const (
 	host     = "localhost"
 	port     = 5432
 	user     = "postgres"
-	password = ""
+	password = "postgres"
 	dbname   = "commendeer"
 )
 
@@ -23,6 +23,8 @@ type PageData struct {
 	PageTitle string
 	Body      template.HTML
 }
+
+var db *sql.DB
 
 func adminLoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
@@ -106,28 +108,29 @@ func resultsHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func dbSetup() error {
+func dbSetup() (*sql.DB, error) {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 
-	db, err := sql.Open("postgres", psqlInfo) // configures db info for connection via code
+	d, err := sql.Open("postgres", psqlInfo) // configures db info for connection via code
 	if err != nil {
-		return err // if there's an error, we don't want to continue listening to the port!
+		return nil, err // if there's an error, we don't want to continue listening to the port!
 	}
-	defer db.Close()
+	defer d.Close()
 
-	err = db.Ping() // open connection to the database
+	err = d.Ping() // open connection to the database
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return d, nil
 }
 
 func main() {
-	err := dbSetup()
+	d, err := dbSetup()
 	if err != nil {
 		panic(err)
 	}
+	db = d
 
 	// UI access setup
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
