@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/aagoldingay/commendeer-go.svg?branch=master)](https://travis-ci.org/aagoldingay/commendeer-go)
+
 # commendeer-go
 
 "Commend here" - A Final Year Project prototype for a feedback system 
