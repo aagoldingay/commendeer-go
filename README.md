@@ -11,6 +11,7 @@ You must first have the Postgres database set up. Insert password when prompted,
 
 ```
 psql -U [username] -f [path-to]\dbconfig\db_create.sql
+psql -U [username] -f [path-to]\dbconfig\db_populate.sql
 ```
 
 Import packages:
