@@ -27,6 +27,9 @@ type PageData struct {
 var db *sql.DB
 
 func adminLoginHandler(w http.ResponseWriter, r *http.Request) {
+	// import "golang.org/x/crypto/bcrypt" for hash passwords (https://gowebexamples.com/password-hashing/)
+	// https://gowebexamples.com/sessions/
+
 	if r.Method == "POST" {
 		if r.FormValue("action") == "Send Codes" {
 			fmt.Println("sent codes")
