@@ -1,10 +1,21 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+
+	_ "github.com/lib/pq"
+)
+
+const (
+	host     = "localhost"
+	port     = 5432
+	user     = "postgres"
+	password = ""
+	dbname   = "commendeer"
 )
 
 // PageData models page information for templating
@@ -95,7 +106,30 @@ func resultsHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func dbSetup() error {
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname)
+
+	db, err := sql.Open("postgres", psqlInfo) // configures db info for connection via code
+	if err != nil {
+		return err // if there's an error, we don't want to continue listening to the port!
+	}
+	defer db.Close()
+
+	err = db.Ping() // open connection to the database
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func main() {
+	err := dbSetup()
+	if err != nil {
+		panic(err)
+	}
+
+	// UI access setup
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	http.HandleFunc("/", handler)
@@ -105,5 +139,6 @@ func main() {
 	http.HandleFunc("/formCreator", formCreatorHandler)
 	http.HandleFunc("/results", resultsHandler)
 
+	// listen to port 8080
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

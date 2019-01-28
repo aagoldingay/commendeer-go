@@ -10,3 +10,9 @@ You must first have the Postgres database set up. Insert password when prompted,
 ```
 psql -U [username] -f [path-to]\dbconfig\db_create.sql
 ```
+
+Import packages:
+
+```
+go get -u github.com/lib/pq
+```
