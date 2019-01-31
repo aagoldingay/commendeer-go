@@ -6,6 +6,11 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
+
+	"github.com/gorilla/sessions"
+
+	"github.com/aagoldingay/commendeer-go/data"
 
 	_ "github.com/lib/pq"
 )
@@ -24,14 +29,34 @@ type PageData struct {
 	Body      template.HTML
 }
 
-var db *sql.DB
+var (
+	db         *sql.DB
+	sessionKey = []byte{35, 250, 103, 131, 245, 255, 194, 76, 198, 188, 157, 217, 82, 104, 157, 5}
+	store      *sessions.CookieStore
+)
 
 func adminLoginHandler(w http.ResponseWriter, r *http.Request) {
 	// import "golang.org/x/crypto/bcrypt" for hash passwords (https://gowebexamples.com/password-hashing/)
 	// https://gowebexamples.com/sessions/
 
 	if r.Method == "POST" {
-		if r.FormValue("action") == "Send Codes" {
+		if r.FormValue("loginrequest") == "true" { // attempted log in
+			session, _ := store.Get(r, "cookie-name")
+			// take username and password from the submitted form
+			usr := data.GetUserInfo(r.FormValue("username"), r.FormValue("password"), db)
+
+			if usr.ID > 0 {
+				session.Values["authenticated"] = true
+				session.Values["admin"] = usr.Admin
+				session.Save(r, w)
+			}
+		}
+		if r.FormValue("action") == "Send Codes" { // admin attempts to generate codes
+			session, _ := store.Get(r, "cookie-name")
+			if admin, ok := session.Values["admin"].(bool); !ok || !admin {
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				return
+			}
 			fmt.Println("sent codes")
 		}
 		tmpl := template.Must(template.ParseFiles("tmpl/dashboard.html"))
@@ -66,6 +91,12 @@ func feedbackHandler(w http.ResponseWriter, r *http.Request) {
 
 func formCreatorHandler(w http.ResponseWriter, r *http.Request) {
 	// configure feedback form, save config to db
+	session, _ := store.Get(r, "cookie-name")
+	if admin, ok := session.Values["admin"].(bool); !ok || !admin {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	if r.Method == "POST" {
 		// save config
 	} else {
@@ -107,8 +138,29 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func resultsHandler(w http.ResponseWriter, r *http.Request) {
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "cookie-name")
 
+	// revoke permissions
+	session.Values["authenticated"] = false
+	session.Values["admin"] = false
+	session.Save(r, w)
+
+	tmpl := template.Must(template.ParseFiles("tmpl/admin.html"))
+
+	data := PageData{
+		PageTitle: "Aston",
+	}
+
+	tmpl.Execute(w, data)
+}
+
+func resultsHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "cookie-name")
+	if admin, ok := session.Values["authenticated"].(bool); !ok || !admin {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 }
 
 func dbSetup() (*sql.DB, error) {
@@ -119,7 +171,6 @@ func dbSetup() (*sql.DB, error) {
 	if err != nil {
 		return nil, err // if there's an error, we don't want to continue listening to the port!
 	}
-	defer d.Close()
 
 	err = d.Ping() // open connection to the database
 	if err != nil {
@@ -131,9 +182,18 @@ func dbSetup() (*sql.DB, error) {
 func main() {
 	d, err := dbSetup()
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
+	defer d.Close()
 	db = d
+	err = db.Ping()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	store = sessions.NewCookieStore(sessionKey)
 
 	// UI access setup
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
@@ -144,6 +204,7 @@ func main() {
 	http.HandleFunc("/admin", adminLoginHandler)
 	http.HandleFunc("/formCreator", formCreatorHandler)
 	http.HandleFunc("/results", resultsHandler)
+	http.HandleFunc("/logout", logoutHandler)
 
 	// listen to port 8080
 	log.Fatal(http.ListenAndServe(":8080", nil))
