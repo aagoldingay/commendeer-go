@@ -54,8 +54,8 @@ VALUES ('01@email.com', 'user1', FALSE),
 	('50@email.com', 'user50', FALSE);
 
 -- Sets up registered users: admins / users
-INSERT INTO UserInfo (Username, Pass, Administrator)
-VALUES ('admin1', '$2a$14$LGaIbgBOpAXs0yNiMjYl9.rAnVpW3FC.f7zFRHoKkjH7YLdt/LD4a', TRUE), --"4dm1n123"
-	('admin2', '$2a$14$UFzQXGDzUE38Qadgomu0neDG6gvj7QCraGpsZLwKdaWC2xc9P4/Hy', TRUE), --"aDmIn3Z1"
-	('sysuser1', '$2a$14$vyJVUMtm6lc15LIAZ8VCAOHeX9FHsBfxM/7khFqlCtuKXXhlyUAYS', FALSE), --"adN1M231"
-	('sysuser2', '$2a$14$p8dbFHcxQy3.Gmd8w6rnSeWBWTEdtWt6nlAlVfZeeajul2rWBI83m', FALSE); --"321n1md4"
+INSERT INTO UserInfo (Username, Pass, Administrator, Salt)
+VALUES ('admin1', '57d8da63dbcfd720673fd0622ac91549', TRUE, 'zRvjFZ8Amq'), --"4dm1n123"
+	('admin2', '34a9d10d0d443c28a1c114e163f87e08', TRUE, 'ykWx4AyIbx'), --"aDmIn3Z1"
+	('sysuser1', '33e5ba627e596d2614ea455f11f6f76b', FALSE, '8Sc5XdfEVK'), --"adN1M231"
+	('sysuser2', 'e317476a4e90347210b5eec226c19511', FALSE, 'pYwticre6h'); --"321n1md4"
