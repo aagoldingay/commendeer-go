@@ -26,7 +26,7 @@ func GenerateCodes(quantity, l int) []string {
 		unique := false
 		c := ""
 		for !unique {
-			c = generateCode(l)
+			c = GenerateCode(l)
 
 			_, prs := m[c] // check if c present in map
 			if !prs {
@@ -41,7 +41,9 @@ func GenerateCodes(quantity, l int) []string {
 	return codes
 }
 
-func generateCode(l int) string {
+// GenerateCode creates a random string using the constant: letters
+// l : length of code
+func GenerateCode(l int) string {
 	b := make([]byte, l)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]

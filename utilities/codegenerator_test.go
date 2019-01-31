@@ -9,6 +9,14 @@ import (
 
 var expectedCodes = []string{"A9rI2", "cvTK4", "UHomc", "jcEQv", "mUNER"}
 
+func Test_GenerateCode_CorrectLength(t *testing.T) {
+	l := 10
+	c := utils.GenerateCode(l)
+	if len(c) != l {
+		t.Errorf("generatecode failed: expected %v, actual %v", l, len(c))
+	}
+}
+
 func Test_GenerateCodes(t *testing.T) {
 	utils.Setup(0)
 	codes := utils.GenerateCodes(5, 5) // 5 codes, length of 5
