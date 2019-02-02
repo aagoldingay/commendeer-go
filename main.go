@@ -57,7 +57,8 @@ func adminLoginHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
 			}
-			fmt.Println("sent codes")
+			numSent := data.SendCodes(db)
+			fmt.Printf("sent %v codes\n", numSent)
 		}
 		tmpl := template.Must(template.ParseFiles("tmpl/dashboard.html"))
 
