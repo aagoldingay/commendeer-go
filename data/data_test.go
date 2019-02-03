@@ -69,6 +69,22 @@ func Test_DataPackage(t *testing.T) {
 	t.Run("Test_SecondSendCodes", func(t *testing.T) {
 		SecondSendCodes(t)
 	})
+	t.Run("Test_GetAccessCode_InvalidCode", func(t *testing.T) {
+		GetAccessCode_InvalidCode(t)
+	})
+	t.Run("Test_GetAccessCode_UnknownEmail", func(t *testing.T) {
+		GetAccessCode_UnknownEmail(t)
+	})
+	t.Run("Test_GetAccessCode_UsedCode", func(t *testing.T) {
+		getAccessCode_UsedCode_Setup(db)
+		GetAccessCode_UsedCode(t)
+		getAccessCode_UsedCode_TD(db)
+	})
+	t.Run("Test_GetAccessCode_Success", func(t *testing.T) {
+		getAccessCode_Success_Setup(db)
+		GetAccessCode_Success(t)
+		getAccessCode_Success_TD(db)
+	})
 
 	// teardown db (codedata_test.go)
 	_, err = db.Exec(codedataCleanupQuery)
