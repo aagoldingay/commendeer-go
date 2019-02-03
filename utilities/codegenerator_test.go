@@ -1,7 +1,6 @@
 package utilities_test // allows testing of exported functions, similar to integration, but stores in the same folder
 
 import (
-	"fmt"
 	"testing"
 
 	utils "github.com/aagoldingay/commendeer-go/utilities"
@@ -20,7 +19,6 @@ func Test_GenerateCode_CorrectLength(t *testing.T) {
 func Test_GenerateCodes(t *testing.T) {
 	utils.Setup(0)
 	codes := utils.GenerateCodes(5, 5) // 5 codes, length of 5
-	fmt.Printf("codes : %v", codes)
 	if len(codes) != 5 {
 		t.Errorf("amount of codes generated is incorrect. expected : %v, actual : %v\n", 5, len(codes))
 	}
