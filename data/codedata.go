@@ -2,19 +2,67 @@ package data
 
 import (
 	"database/sql"
+	"encoding/csv"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	utils "github.com/aagoldingay/commendeer-go/utilities"
 )
 
 const (
-	codeLen       = 10
-	getCodeQuery  = "SELECT CodeID, Used FROM AccessCode WHERE Email = '%v' AND Code = '%v'"
-	sendCodeQuery = "SELECT CodeID FROM AccessCode WHERE Code IS NULL;"
-	update        = "UPDATE AccessCode SET Code = '%v' WHERE CodeID = %v; "
+	codeLen          = 10
+	getCodeQuery     = "SELECT CodeID, Used FROM AccessCode WHERE Email = '%v' AND Code = '%v'"
+	sendCodeQuery    = "SELECT CodeID FROM AccessCode WHERE Code IS NULL;"
+	getCodeDataQuery = "SELECT systemusername, Email, Code FROM AccessCode WHERE Email IS NOT NULL AND Code IS NOT NULL;"
+	codeDataFile     = "testerdata.csv"
+	update           = "UPDATE AccessCode SET Code = '%v' WHERE CodeID = %v; "
 )
+
+// GenerateCodeCSV will return data from the database containing username, email and code per registered beta user
+func GenerateCodeCSV(db *sql.DB) string {
+	rows, err := db.Query(getCodeDataQuery)
+	if err != nil {
+		fmt.Printf("%v: error on GenerateCodeCSV query - %v\n", time.Now(), err)
+		return ""
+	}
+	defer rows.Close()
+
+	var (
+		name, email, code string
+	)
+	data := [][]string{}
+	data = append(data, []string{"Username", "Email", "Code"}) // column headers
+	for rows.Next() {
+		rows.Scan(&name, &email, &code)
+		data = append(data, []string{name, email, code}) //append row to data slice
+	}
+
+	if _, err := os.Stat(codeDataFile); !os.IsNotExist(err) {
+		err = os.Remove(codeDataFile)
+		if err != nil {
+			fmt.Printf("%v: error on previous code deletion - %v", time.Now(), err)
+		}
+	}
+	file, err := os.Create(codeDataFile)
+	if err != nil {
+		fmt.Printf("%v: error on file creation (GenerateCodeCSV) - %v", time.Now(), err)
+		return ""
+	}
+	defer file.Close()
+
+	w := csv.NewWriter(file)
+
+	w.WriteAll(data)
+
+	w.Flush()
+	if err := w.Error(); err != nil {
+		fmt.Printf("%v: error on GenerateCodeCSV - %v", time.Now(), err)
+		return ""
+	}
+	return codeDataFile
+}
 
 // GetAccessCode takes an email and code, then searches the database for a relevant entry
 // errors return based on incorrect code length or 'no code or user found'

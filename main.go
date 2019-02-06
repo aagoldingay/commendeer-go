@@ -58,7 +58,18 @@ func adminLoginHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			numSent := data.SendCodes(db)
-			fmt.Printf("sent %v codes\n", numSent)
+			if numSent > 0 {
+				fmt.Println("sent codes")
+			}
+		}
+		if r.FormValue("action") == "Download User Data" { // admin attempts to download user data
+			session, _ := store.Get(r, "cookie-name")
+			if admin, ok := session.Values["admin"].(bool); !ok || !admin {
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				return
+			}
+			file := data.GenerateCodeCSV(db)
+			http.ServeFile(w, r, file)
 		}
 		tmpl := template.Must(template.ParseFiles("tmpl/dashboard.html"))
 
