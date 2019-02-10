@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/aagoldingay/commendeer-go/data"
+	"github.com/aagoldingay/commendeer-go/server/data"
 )
 
 // ATTENTION: tests are called and run in data_test.go

@@ -5,12 +5,18 @@ CREATE DATABASE Commendeer
 
 \c commendeer
 
+CREATE TABLE IF NOT EXISTS Questionnaire (
+	QuestionnaireID SERIAL PRIMARY KEY,
+	Title TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS AccessCode (
 	CodeID SERIAL PRIMARY KEY,
 	Email VARCHAR(150),
 	SystemUsername VARCHAR(50) NOT NULL,
 	Code VARCHAR(10),
-	Used BOOL NOT NULL
+	Used BOOL NOT NULL,
+	QuestionnaireID INTEGER REFERENCES Questionnaire(QuestionnaireID)
 );
 
 CREATE TABLE IF NOT EXISTS UserInfo (
@@ -30,7 +36,8 @@ CREATE TABLE IF NOT EXISTS Question (
 	QuestionID SERIAL PRIMARY KEY,
 	QuestionTypeID INTEGER REFERENCES QuestionType(QuestionTypeID),
 	QuestionOrder INTEGER,
-	Title TEXT NOT NULL
+	Title TEXT NOT NULL,
+	QuestionnaireID INTEGER REFERENCES Questionnaire(QuestionnaireID)
 );
 
 CREATE TABLE IF NOT EXISTS MultiChoiceQuestionOption (
@@ -57,4 +64,11 @@ CREATE TABLE IF NOT EXISTS QuantitativeResult (
 	QuantitativeResultID SERIAL PRIMARY KEY,
 	QuestionID INTEGER REFERENCES Question(QuestionID),
 	Total NUMERIC(7, 2)
+);
+
+CREATE TABLE IF NOT EXISTS AuthCodes (
+	AuthCodeID SERIAL PRIMARY KEY,
+	UserID INTEGER REFERENCES UserInfo(UserID),
+	Code VARCHAR(20) NOT NULL,
+	Administrator BOOL NOT NULL
 );

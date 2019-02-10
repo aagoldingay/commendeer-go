@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	utils "github.com/aagoldingay/commendeer-go/utilities"
+	utils "github.com/aagoldingay/commendeer-go/server/utilities"
 )
 
 const (
@@ -22,6 +22,7 @@ const (
 
 // GenerateCodeCSV will return data from the database containing username, email and code per registered beta user
 func GenerateCodeCSV(db *sql.DB) string {
+	// TODO - AMEND TO ADD QUESTIONNAIREID
 	rows, err := db.Query(getCodeDataQuery)
 	if err != nil {
 		fmt.Printf("%v: error on GenerateCodeCSV query - %v\n", time.Now(), err)
@@ -98,6 +99,8 @@ func GetAccessCode(email, code string, db *sql.DB) (bool, error) {
 // SendCodes updates AccessCode table to find any entries without a code
 // generates codes with utilities pkg, then updates the table with the generated, unique codes
 func SendCodes(db *sql.DB) int {
+
+	// TODO - AMEND TO SEND, ADD QUESTIONNAIREID
 	codeIDs := []int{}
 
 	// get count of codes to create

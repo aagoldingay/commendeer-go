@@ -1,16 +1,17 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"html/template"
-	"log"
-	"net/http"
+	"net"
 	"os"
+	"os/signal"
 
-	"github.com/gorilla/sessions"
-
-	"github.com/aagoldingay/commendeer-go/data"
+	pb "github.com/aagoldingay/commendeer-go/pb"
+	"github.com/aagoldingay/commendeer-go/server/data"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	_ "github.com/lib/pq"
 )
@@ -23,33 +24,52 @@ const (
 	dbname   = "commendeer"
 )
 
-// PageData models page information for templating
-type PageData struct {
-	PageTitle string
-	Body      template.HTML
-}
-
 var (
-	db         *sql.DB
-	sessionKey = []byte{35, 250, 103, 131, 245, 255, 194, 76, 198, 188, 157, 217, 82, 104, 157, 5}
-	store      *sessions.CookieStore
+	db *sql.DB
+	// sessionKey = []byte{35, 250, 103, 131, 245, 255, 194, 76, 198, 188, 157, 217, 82, 104, 157, 5}
+	// store      *sessions.CookieStore
 )
 
+type server struct{}
+
+func (s *server) LoginUser(ctx context.Context, in *pb.LoginRequest) (*pb.LoginResponse, error) {
+	usr, err := data.Login(in.Username, in.Password, db)
+	if err != nil {
+		if err.Error() == "incorrect username or password" {
+			return &pb.LoginResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Incorrect username or password"}, nil
+		}
+		if err.Error() == "error on authorisation" {
+			return &pb.LoginResponse{Error: pb.Error_INTERNALERROR, ErrorDetails: "Problem logging in"}, nil
+		}
+	}
+	return &pb.LoginResponse{Username: usr.Username, Authcode: usr.Code, Error: pb.Error_OK, ErrorDetails: ""}, nil
+}
+
+func (s *server) LogoutUser(ctx context.Context, in *pb.LogoutRequest) (*pb.LogoutResponse, error) {
+	err := data.Logout(in.Authcode, db)
+	if err != nil {
+		if err.Error() == "invalid code" {
+			return &pb.LogoutResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Authorisation invalid"}, nil
+		}
+		if err.Error() == "error on logout" {
+			return &pb.LogoutResponse{Error: pb.Error_INTERNALERROR, ErrorDetails: "Problem logging out"}, nil
+		}
+		if err.Error() == "unknown code" {
+			return &pb.LogoutResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Problem identifying user"}, nil
+		}
+	}
+	return &pb.LogoutResponse{Error: pb.Error_OK, ErrorDetails: ""}, nil
+}
+
+/*
 func adminLoginHandler(w http.ResponseWriter, r *http.Request) {
-	// import "golang.org/x/crypto/bcrypt" for hash passwords (https://gowebexamples.com/password-hashing/)
 	// https://gowebexamples.com/sessions/
 
 	if r.Method == "POST" {
 		if r.FormValue("loginrequest") == "true" { // attempted log in
 			session, _ := store.Get(r, "cookie-name")
 			// take username and password from the submitted form
-			usr := data.GetUserInfo(r.FormValue("username"), r.FormValue("password"), db)
 
-			if usr.ID > 0 {
-				session.Values["authenticated"] = true
-				session.Values["admin"] = usr.Admin
-				session.Save(r, w)
-			}
 		}
 		if r.FormValue("action") == "Send Codes" { // admin attempts to generate codes
 			session, _ := store.Get(r, "cookie-name")
@@ -115,6 +135,21 @@ func formCreatorHandler(w http.ResponseWriter, r *http.Request) {
 		// configure selection
 		// load existing settings
 	}
+	tmpl := template.Must(template.ParseFiles("tmpl/formcreator.html"))
+
+	qts, err := data.GetQuestionTypesHTML(db)
+	if err != nil {
+		http.Error(w, "Problem loading content", http.StatusExpectationFailed)
+		return
+	}
+
+	data := PageData{
+		PageTitle:     "Aston",
+		QuestionTypes: template.HTML(qts),
+		Body:          template.HTML("<h1>Testing</h1>"), // populate via db
+	}
+
+	tmpl.Execute(w, data) // loads feedback form
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -174,7 +209,7 @@ func resultsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-
+*/
 func dbSetup() (*sql.DB, error) {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -205,19 +240,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	store = sessions.NewCookieStore(sessionKey)
+	stop := make(chan os.Signal)
+	signal.Notify(stop, os.Interrupt)
 
-	// UI access setup
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	lis, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		fmt.Printf("failed to listen: %v", err)
+		os.Exit(1)
+	}
+	s := grpc.NewServer()
+	pb.RegisterCommendeerServer(s, &server{})
 
-	http.HandleFunc("/", handler)
-	http.HandleFunc("/thanks", feedbackHandler)
+	go func() {
+		// Register reflection service on gRPC server.
+		reflection.Register(s)
+		if err := s.Serve(lis); err != nil {
+			fmt.Printf("failed to serve: %v", err)
+			os.Exit(1)
+		}
+	}()
+	<-stop
+	fmt.Printf("shutting down service")
 
-	http.HandleFunc("/admin", adminLoginHandler)
-	http.HandleFunc("/formCreator", formCreatorHandler)
-	http.HandleFunc("/results", resultsHandler)
-	http.HandleFunc("/logout", logoutHandler)
-
-	// listen to port 8080
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	s.Stop()
 }

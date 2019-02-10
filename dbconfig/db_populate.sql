@@ -59,3 +59,11 @@ VALUES ('admin1', '57d8da63dbcfd720673fd0622ac91549', TRUE, 'zRvjFZ8Amq'), --"4d
 	('admin2', '34a9d10d0d443c28a1c114e163f87e08', TRUE, 'ykWx4AyIbx'), --"aDmIn3Z1"
 	('sysuser1', '33e5ba627e596d2614ea455f11f6f76b', FALSE, '8Sc5XdfEVK'), --"adN1M231"
 	('sysuser2', 'e317476a4e90347210b5eec226c19511', FALSE, 'pYwticre6h'); --"321n1md4"
+
+-- Populates QuestionType
+INSERT INTO QuestionType (Description)
+VALUES ('radio buttons'),
+('multi choice'),
+('text field'),
+('text area'),
+('date');

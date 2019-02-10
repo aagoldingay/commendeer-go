@@ -3,7 +3,7 @@ package utilities_test // allows testing of exported functions, similar to integ
 import (
 	"testing"
 
-	utils "github.com/aagoldingay/commendeer-go/utilities"
+	utils "github.com/aagoldingay/commendeer-go/server/utilities"
 )
 
 var expectedCodes = []string{"A9rI2", "cvTK4", "UHomc", "jcEQv", "mUNER"}
