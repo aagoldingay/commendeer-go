@@ -24,9 +24,33 @@ type userData struct {
 const (
 	getUserQuery       = "SELECT * FROM userinfo where Username = $1"
 	addAuthRowQuery    = "INSERT INTO authcodes (UserID, Code, Administrator) VALUES ($1, $2, $3);"
-	getAuthRowQuery    = "SELECT userid FROM authcodes WHERE code = $1"
+	getAuthRowQuery    = "SELECT userid, administrator FROM authcodes WHERE code = $1"
 	deleteAuthRowQuery = "DELETE FROM authcodes WHERE userid = $1"
 )
+
+// CheckAuthorised checks the supplied code, and checks if session is an admin
+func CheckAuthorised(code string, adminReq bool, db *sql.DB) (bool, error) {
+	if len(code) != 20 {
+		return false, errors.New("invalid code")
+	}
+	rows, err := db.Query(getAuthRowQuery)
+	if err != nil {
+		fmt.Printf("%v: error on CheckAuthorised query - %v\n", time.Now(), err)
+	}
+	defer rows.Close()
+
+	var (
+		id    int
+		admin bool
+	)
+	for rows.Next() {
+		rows.Scan(&id, &admin)
+	}
+	if id < 1 || admin != adminReq {
+		return false, errors.New("forbidden")
+	}
+	return true, nil
+}
 
 // Login checks the database for an occurrence of a user by username, then compares hashed passwords
 // Authorises if valid

@@ -6,9 +6,11 @@ package pb;
 
 // Commendeer service definition
 service Commendeer {
-	// rpc CreateAccessCodes (CreateCodeRequest) returns (CreateCodeResponse) {}
+	// Creates access codes for registered users linked to a questionnaire
+	rpc CreateAccessCodes (CreateCodeRequest) returns (CreateCodeResponse) {}
 
-	// rpc CreateForm (CreateFormRequest) returns (CreateResponse) {}
+	// Creates a questionnaire form
+	rpc CreateForm (CreateFormRequest) returns (CreateResponse) {}
 
 	// rpc DownloadUserData (DownloadRequest) returns (DownloadResponse) {}
 
@@ -17,6 +19,7 @@ service Commendeer {
 	// Logs user in, creates an authentication code for later authentication
 	rpc LoginUser (LoginRequest) returns (LoginResponse) {}
 
+	// Logs user out, removes all session codes designated to that users
 	rpc LogoutUser (LogoutRequest) returns (LogoutResponse) {}
 
 	// rpc SubmitFeedback (PostFeedbackRequest) returns (PostFeedbackResponse) {}
@@ -37,6 +40,16 @@ enum Error {
 	SERVICEUNAVAILABLE = 503;
 }
 
+message CreateCodeRequest {
+	string authcode = 1;
+	int32 questionnaireID = 2;
+}
+
+message CreateCodeResponse {
+	Error error = 1;
+	string errorDetails = 2;
+}
+
 message LoginRequest {
 	string username = 1;
 	string password = 2;
@@ -54,6 +67,51 @@ message LogoutRequest {
 }
 
 message LogoutResponse {
+	Error error = 1;
+	string errorDetails = 2;
+}
+
+message DateQuestion {
+	int32 order = 1;
+	string title = 2;
+}
+
+message ShortTextQuestion {
+	int32 order = 1;
+	string title = 2;
+}
+
+message LongTextQuestion {
+	int32 order = 1;
+	string title = 2;
+}
+
+message AnswerOption {
+	string title = 2;
+}
+
+message RadioQuestion {
+	int32 order = 1;
+	string title = 2;
+	repeated AnswerOption options = 3;
+}
+
+message MultiChoiceQuestion {
+	int32 order = 1;
+	string title = 2;
+	repeated AnswerOption options = 3;
+}
+
+message CreateFormRequest {
+	string title = 1;
+	repeated ShortTextQuestion shortTextQuestions = 2;
+	repeated LongTextQuestion longTextQuestions = 3;
+	repeated MultiChoiceQuestion multiChoiceQuestions = 4;
+	repeated RadioQuestion radioQuestions = 5;
+	repeated DateQuestion dateQuestions = 6;
+}
+
+message CreateResponse {
 	Error error = 1;
 	string errorDetails = 2;
 }

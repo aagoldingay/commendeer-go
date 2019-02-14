@@ -14,10 +14,10 @@ import (
 const (
 	codeLen          = 10
 	getCodeQuery     = "SELECT CodeID, Used FROM AccessCode WHERE Email = '%v' AND Code = '%v'"
-	sendCodeQuery    = "SELECT CodeID FROM AccessCode WHERE Code IS NULL;"
+	sendCodeQuery    = "SELECT CodeID FROM AccessCode WHERE Code IS NULL AND QuestionnaireID = $1;"
 	getCodeDataQuery = "SELECT systemusername, Email, Code FROM AccessCode WHERE Email IS NOT NULL AND Code IS NOT NULL;"
 	codeDataFile     = "testerdata.csv"
-	update           = "UPDATE AccessCode SET Code = '%v' WHERE CodeID = %v; "
+	update           = "UPDATE AccessCode SET Code = '%v' WHERE CodeID = %v AND QuestionnaireID = %v; "
 )
 
 // GenerateCodeCSV will return data from the database containing username, email and code per registered beta user
@@ -98,20 +98,19 @@ func GetAccessCode(email, code string, db *sql.DB) (bool, error) {
 
 // SendCodes updates AccessCode table to find any entries without a code
 // generates codes with utilities pkg, then updates the table with the generated, unique codes
-func SendCodes(db *sql.DB) int {
-
+func SendCodes(qid int, db *sql.DB) (bool, error) {
 	// TODO - AMEND TO SEND, ADD QUESTIONNAIREID
 	codeIDs := []int{}
 
 	// get count of codes to create
-	rows, err := db.Query(sendCodeQuery)
+	rows, err := db.Query(sendCodeQuery, qid)
 	if err == sql.ErrNoRows {
 		fmt.Printf("%v: no codes to create\n", time.Now())
-		return 0
+		return false, errors.New("no codes to create")
 	}
 	if err != nil {
 		fmt.Printf("%v: error on SendCodes get count - %v\n", time.Now(), err)
-		return 0
+		return false, errors.New("problem encountered while creating codes")
 	}
 	defer rows.Close()
 
@@ -120,12 +119,13 @@ func SendCodes(db *sql.DB) int {
 		err = rows.Scan(&id)
 		if err != nil {
 			fmt.Printf("%v: error on SendCodes read get rows - %v\n", time.Now(), err)
+			return false, errors.New("problem encountered while creating codes")
 		}
 		codeIDs = append(codeIDs, id) // maintain slice containing codeIDs to update
 	}
 	if len(codeIDs) == 0 {
 		fmt.Printf("%v: no codes to create\n", time.Now())
-		return 0
+		return false, errors.New("no codes to create")
 	}
 	utils.Setup(-1)
 
@@ -135,22 +135,16 @@ func SendCodes(db *sql.DB) int {
 	// create query to insert codes
 	var fullQuery string
 	for i := 0; i < len(codes); i++ {
-		q := fmt.Sprintf(update, codes[i], codeIDs[i])
+		q := fmt.Sprintf(update, codes[i], codeIDs[i], qid)
 		fullQuery += q
 	}
 
 	// run query
-	res, err := db.Exec(fullQuery)
+	_, err = db.Exec(fullQuery)
 	if err != nil {
 		fmt.Printf("%v: error on SendCodes update query - %v\n", time.Now(), err)
-		return 0
+		return false, errors.New("problem encountered while creating codes")
 	}
 
-	count, err := res.RowsAffected()
-	if err != nil {
-		fmt.Printf("%v: error on SendCodes rows affected - %v\n", time.Now(), err)
-		return int(count)
-	}
-
-	return int(count)
+	return true, nil
 }
