@@ -22,6 +22,8 @@ func Test_CreateForm(t *testing.T) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	processedQs := []utils.QuestionInfo{}
+	processedQs := []utils.QuestionInfo{
+		utils.QuestionInfo{3, 1, "Question 1"}
+	}
 	err := data.CreateForm("Questionnaire 1", processedQs, d)
 }
