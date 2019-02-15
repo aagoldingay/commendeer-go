@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS AccessCode (
 	SystemUsername VARCHAR(50) NOT NULL,
 	Code VARCHAR(10),
 	Used BOOL NOT NULL,
-	QuestionnaireID INTEGER REFERENCES Questionnaire(QuestionnaireID)
+	QuestionnaireID INTEGER REFERENCES Questionnaire(QuestionnaireID) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS UserInfo (
@@ -34,41 +34,41 @@ CREATE TABLE IF NOT EXISTS QuestionType (
 
 CREATE TABLE IF NOT EXISTS Question (
 	QuestionID SERIAL PRIMARY KEY,
-	QuestionTypeID INTEGER REFERENCES QuestionType(QuestionTypeID),
+	QuestionTypeID INTEGER REFERENCES QuestionType(QuestionTypeID) ON DELETE CASCADE,
 	QuestionOrder INTEGER,
 	Title TEXT NOT NULL,
-	QuestionnaireID INTEGER REFERENCES Questionnaire(QuestionnaireID)
+	QuestionnaireID INTEGER REFERENCES Questionnaire(QuestionnaireID) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS MultiChoiceQuestionOption (
 	MultiChoiceQuestionOptionID SERIAL PRIMARY KEY,
-	QuestionID INTEGER REFERENCES Question(QuestionID),
+	QuestionID INTEGER REFERENCES Question(QuestionID) ON DELETE CASCADE,
 	OptionDescription TEXT
 );
 
 CREATE TABLE IF NOT EXISTS MultiChoiceQuestionOption_Result (
 	MultiChoiceQuestionOption_ResultID SERIAL PRIMARY KEY,
-	QuestionID INTEGER REFERENCES Question(QuestionID),
-	MultiChoiceQuestionOptionID INTEGER REFERENCES MultiChoiceQuestionOption(MultiChoiceQuestionOptionID),
-	CodeID INTEGER REFERENCES AccessCode(CodeID)
+	QuestionID INTEGER REFERENCES Question(QuestionID) ON DELETE CASCADE,
+	MultiChoiceQuestionOptionID INTEGER REFERENCES MultiChoiceQuestionOption(MultiChoiceQuestionOptionID) ON DELETE CASCADE,
+	CodeID INTEGER REFERENCES AccessCode(CodeID) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS Question_Result (
 	Question_ResultID SERIAL PRIMARY KEY,
-	QuestionID INTEGER REFERENCES Question(QuestionID),
-	CodeID INTEGER REFERENCES AccessCode(CodeID),
+	QuestionID INTEGER REFERENCES Question(QuestionID) ON DELETE CASCADE,
+	CodeID INTEGER REFERENCES AccessCode(CodeID) ON DELETE CASCADE,
 	Answer TEXT
 );
 
 CREATE TABLE IF NOT EXISTS QuantitativeResult (
 	QuantitativeResultID SERIAL PRIMARY KEY,
-	QuestionID INTEGER REFERENCES Question(QuestionID),
+	QuestionID INTEGER REFERENCES Question(QuestionID) ON DELETE CASCADE,
 	Total NUMERIC(7, 2)
 );
 
 CREATE TABLE IF NOT EXISTS AuthCodes (
 	AuthCodeID SERIAL PRIMARY KEY,
-	UserID INTEGER REFERENCES UserInfo(UserID),
+	UserID INTEGER REFERENCES UserInfo(UserID) ON DELETE CASCADE,
 	Code VARCHAR(20) NOT NULL,
 	Administrator BOOL NOT NULL
 );

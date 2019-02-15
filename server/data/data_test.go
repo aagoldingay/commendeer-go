@@ -15,8 +15,9 @@ const (
 	password = "postgres"
 	dbname   = "commendeer"
 
-	authcodeCleanupQuery = "delete from authcodes where code is not null"
-	codedataCleanupQuery = "update accesscode set code = null where code is not null"
+	authcodeCleanupQuery      = "delete from authcodes where code is not null"
+	codedataCleanupQuery      = "update accesscode set code = null where code is not null"
+	questionnaireCleanupQuery = "delete from questionnaire where questionnaireid != 1"
 )
 
 var db *sql.DB
@@ -76,35 +77,45 @@ func Test_DataPackage(t *testing.T) {
 	if err != nil {
 		t.Errorf("error on AuthCode cleanup - %v\n", err)
 	}
-	/*
-		// codedata_test.go
-		t.Run("Test_InitialSendCodes", func(t *testing.T) { // run before get from AccessCode table
-			InitialSendCodes(t)
-		})
-		t.Run("Test_SecondSendCodes", func(t *testing.T) {
-			SecondSendCodes(t)
-		})
-		t.Run("Test_GetAccessCode_InvalidCode", func(t *testing.T) {
-			GetAccessCode_InvalidCode(t)
-		})
-		t.Run("Test_GetAccessCode_UnknownEmail", func(t *testing.T) {
-			GetAccessCode_UnknownEmail(t)
-		})
-		t.Run("Test_GetAccessCode_UsedCode", func(t *testing.T) {
-			getAccessCode_UsedCode_Setup(db)
-			GetAccessCode_UsedCode(t)
-			getAccessCode_UsedCode_TD(db)
-		})
-		t.Run("Test_GetAccessCode_Success", func(t *testing.T) {
-			getAccessCode_Success_Setup(db)
-			GetAccessCode_Success(t)
-			getAccessCode_Success_TD(db)
-		})
 
-		// teardown db (codedata_test.go)
-		_, err = db.Exec(codedataCleanupQuery)
-		if err != nil {
-			t.Errorf("error on SendCodes cleanup - %v\n", err)
-		}
-	*/
+	// questioncreator_test.go
+	t.Run("Test_CreateForm", func(t *testing.T) {
+		CreateForm(t)
+	})
+
+	// codedata_test.go
+	t.Run("Test_InitialSendCodes", func(t *testing.T) { // run before get from AccessCode table
+		InitialSendCodes(t)
+	})
+	t.Run("Test_SecondSendCodes", func(t *testing.T) {
+		SecondSendCodes(t)
+	})
+	t.Run("Test_GetAccessCode_InvalidCode", func(t *testing.T) {
+		GetAccessCode_InvalidCode(t)
+	})
+	t.Run("Test_GetAccessCode_UnknownEmail", func(t *testing.T) {
+		GetAccessCode_UnknownEmail(t)
+	})
+	t.Run("Test_GetAccessCode_UsedCode", func(t *testing.T) {
+		getAccessCode_UsedCode_Setup(db)
+		GetAccessCode_UsedCode(t)
+		getAccessCode_UsedCode_TD(db)
+	})
+	t.Run("Test_GetAccessCode_Success", func(t *testing.T) {
+		getAccessCode_Success_Setup(db)
+		GetAccessCode_Success(t)
+		getAccessCode_Success_TD(db)
+	})
+
+	// teardown db (codedata_test.go)
+	_, err = db.Exec(codedataCleanupQuery)
+	if err != nil {
+		t.Errorf("error on SendCodes cleanup - %v\n", err)
+	}
+
+	// teardown db (questioncreator_test.go)
+	_, err = db.Exec(questionnaireCleanupQuery)
+	if err != nil {
+		t.Errorf("error on QuestionCreator cleanup - %v\n", err)
+	}
 }

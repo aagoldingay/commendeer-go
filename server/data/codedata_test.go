@@ -11,39 +11,55 @@ import (
 // ATTENTION: tests are called and run in data_test.go
 
 func InitialSendCodes(t *testing.T) {
-	r := data.SendCodes(db)
-	if r != 1 { // for success
-		t.Errorf("update query status not 1, actual %v\n", r)
+	sent, err := data.SendCodes(1, db) // should return false as codes already populated above
+	if err != nil {
+		if err.Error() == "no codes to create" {
+			t.Errorf("InitialSendCodes should have created codes\n")
+		}
+		if err.Error() == "problem encountered while creating codes" {
+			t.Errorf("InitialSendCodes error during queries\n")
+		}
+	}
+	if !sent { // for success
+		t.Errorf("InitialSendCodes should have sent, didn't\n")
 	}
 }
 
 func SecondSendCodes(t *testing.T) {
-	r := data.SendCodes(db) // should return 0 as codes already populated above
-	if r != 0 {
-		t.Errorf("second SendCodes test was not 0 as expected. actual %v\n", r)
+	sent, err := data.SendCodes(1, db) // should return false as codes already populated above
+	if err != nil {
+		if err.Error() == "problem encountered while creating codes" {
+			t.Errorf("InitialSendCodes error during queries\n")
+		}
+	}
+	if sent {
+		t.Errorf("second SendCodes test sent. shouldnt have\n")
 	}
 }
 
 func GetAccessCode_Success(t *testing.T) {
 	notUsed, err := data.GetAccessCode("e@email.com", "helloworld", db)
-	if !notUsed || err != nil {
+	if err != nil {
+		t.Errorf("Test_GetAccessCode_Success errored, shouldnt have : %v\n", err)
+	}
+	if !notUsed {
 		t.Errorf("Test_GetAccessCode_Success did not succeed\n")
 	}
 }
 
 func getAccessCode_Success_Setup(db *sql.DB) {
-	iq := "INSERT INTO AccessCode (Email, SystemUsername, Code, Used) VALUES ('e@email.com', 'fake1', 'helloworld', FALSE);"
+	iq := "INSERT INTO AccessCode (Email, SystemUsername, Code, Used, QuestionnaireID) VALUES ('e@email.com', 'fake1', 'helloworld', FALSE, 2);"
 	_, err := db.Exec(iq)
 	if err != nil {
-		fmt.Printf("Test_GetAccessCode_Success problem on setup")
+		fmt.Printf("Test_GetAccessCode_Success problem on setup\n")
 	}
 }
 
 func getAccessCode_Success_TD(db *sql.DB) {
-	dq := "delete from AccessCode where codeid = 51"
+	dq := "delete from AccessCode where questionnaire id < 1"
 	_, err := db.Exec(dq)
 	if err != nil {
-		fmt.Printf("Test_GetAccessCode_Success problem on cleanup")
+		fmt.Printf("Test_GetAccessCode_Success problem on cleanup\n")
 	}
 }
 
@@ -55,18 +71,18 @@ func GetAccessCode_UsedCode(t *testing.T) {
 }
 
 func getAccessCode_UsedCode_Setup(db *sql.DB) {
-	iq := "INSERT INTO AccessCode (Email, SystemUsername, Code, Used) VALUES ('e@email.com', 'fake1', 'helloworld', TRUE);"
+	iq := "INSERT INTO AccessCode (Email, SystemUsername, Code, Used, QuestionnaireID) VALUES ('e@email.com', 'fake1', 'helloworld', TRUE, 2);"
 	_, err := db.Exec(iq)
 	if err != nil {
-		fmt.Printf("Test_GetAccessCode_UsedCode problem on setup")
+		fmt.Printf("Test_GetAccessCode_UsedCode problem on setup\n")
 	}
 }
 
 func getAccessCode_UsedCode_TD(db *sql.DB) {
-	dq := "delete from AccessCode where codeid = 52"
+	dq := "delete from AccessCode where questionnaire id < 1"
 	_, err := db.Exec(dq)
 	if err != nil {
-		fmt.Printf("Test_GetAccessCode_UsedCode problem on cleanup")
+		fmt.Printf("Test_GetAccessCode_UsedCode problem on cleanup\n")
 	}
 }
 

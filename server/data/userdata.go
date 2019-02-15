@@ -25,6 +25,7 @@ const (
 	getUserQuery       = "SELECT * FROM userinfo where Username = $1"
 	addAuthRowQuery    = "INSERT INTO authcodes (UserID, Code, Administrator) VALUES ($1, $2, $3);"
 	getAuthRowQuery    = "SELECT userid, administrator FROM authcodes WHERE code = $1"
+	getAnyAuthRowQuery = "SELECT userid FROM authcodes WHERE code = $1"
 	deleteAuthRowQuery = "DELETE FROM authcodes WHERE userid = $1"
 )
 
@@ -90,7 +91,7 @@ func Logout(code string, db *sql.DB) error {
 	if len(code) != 20 {
 		return errors.New("invalid code")
 	}
-	rows, err := db.Query(getAuthRowQuery, code)
+	rows, err := db.Query(getAnyAuthRowQuery, code)
 	if err != nil {
 		fmt.Printf("%v: error on getAuthRow query - %v\n", time.Now(), err)
 		return errors.New("error on logout")

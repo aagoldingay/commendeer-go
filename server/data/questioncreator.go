@@ -4,18 +4,22 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	utils "github.com/aagoldingay/commendeer-go/server/utilities"
 )
 
 const (
-	getQuestionTypesQuery                 = "SELECT * FROM QuestionType" // returned: int, string
-	getMultiQuestionsByQuestionnaireQuery = "SELECT QuestionID FROM Question WHERE (QuestionnaireID = $1) AND (QuestionTypeID = 1 OR QuestionTypeID = 2);"
-	addQuestionnaireQuery                 = "INSERT INTO Questionnaire (Title) VALUES ($1);"
-	getQuestionnaireQuery                 = "SELECT QuestionnaireID FROM Questionnaire WHERE Title = $1"
-	addQuestionQuery                      = "INSERT INTO Question (QuestionTypeID, QuestionOrder, Title, QuestionnaireID) VALUES ('%v', '%v', '%v', '%v'); "
-	addQuestionOptionQuery                = "INSERT INTO MultiChoiceQuestionOption (QuestionID, OptionDescription) VALUES ('%v', '%v'); "
+	comm                  = ", "
+	getQuestionTypesQuery = "SELECT * FROM QuestionType" // returned: int, string
+
+	newQuestionnaireQuery = "WITH new_questionnaire as (INSERT INTO Questionnaire (Title) VALUES ('%v') returning questionnaireID), "
+	newQuestionQuery      = "new_questions as (INSERT INTO Question (questionTypeID, questionorder, title, questionnaireID) VALUES %v returning questionID, title) "
+	newOptionQuery        = "INSERT INTO multichoicequestionoption (OptionDescription, questionID) VALUES %v;"
+
+	questionValues = "(%v, %v, '%v', (select questionnaireID from new_questionnaire))"         // (typeid, order, title)
+	optionValues   = "('%v', (select q.questionID from new_questions q where q.title = '%v'))" // (option-title ... = question-title))
 )
 
 // QuestionType struct contains the ID and description of a questiontype stored in the database
@@ -27,72 +31,34 @@ type QuestionType struct {
 
 // CreateForm adds questions to the database
 func CreateForm(title string, questions []utils.QuestionInfo, db *sql.DB) error {
-	// add questionnaire
-	_, err := db.Exec(addQuestionnaireQuery, title)
-	if err != nil {
-		fmt.Printf("%v: error on CreateForm create questionnaire - %v\n", time.Now(), err)
-		return errors.New("problem creating questionnaire")
-	}
+	query := ""
 
-	// retrieve questionnaire
-	var questionnaireID int
-	rows, err := db.Query(getQuestionnaireQuery, title)
-	rows.Next()
-	rows.Scan(&questionnaireID)
-	if questionnaireID < 1 {
-		fmt.Printf("%v: error on CreateForm retrieving questionnaire\n", time.Now())
-		return errors.New("problem creating questionnaire")
-	}
+	// compile questionnaire data
+	query += fmt.Sprintf(newQuestionnaireQuery, title)
 
-	qQuery := ""
-	multiQuestionIndexes := make(map[int]int) // [ index ] questionID
-	mQKeys := []int{}                         // stores map keys (index from input)
-
-	// setup questions query
+	q, o := "", ""
+	// compile questions (q), options (o) queries
 	for i := 0; i < len(questions); i++ {
-		q := fmt.Sprintf(addQuestionQuery, questions[i].QuestionType, questions[i].Order, questions[i].Title, questionnaireID)
-		qQuery += q
+		q += fmt.Sprintf(questionValues, questions[i].QuestionType, questions[i].Order, questions[i].Title)
+
 		if questions[i].Options != nil {
-			multiQuestionIndexes[i] = 0
-			mQKeys = append(mQKeys, i)
+			for j := 0; j < len(questions[i].Options); j++ {
+				o += fmt.Sprintf(optionValues, questions[i].Options[j].Title, questions[i].Title) + comm
+			}
+		}
+		if i < len(questions)-1 { // final question does not need a comma
+			q += comm
 		}
 	}
+	o = strings.TrimRight(o, comm)
 
-	_, err = db.Exec(qQuery)
+	// compile whole query
+	query += fmt.Sprintf(newQuestionQuery, q)
+	query += fmt.Sprintf(newOptionQuery, o)
+
+	_, err := db.Exec(query)
 	if err != nil {
-		fmt.Printf("%v: error on CreateForm add questions - %v\n", time.Now(), err)
-		return errors.New("problem creating questionnaire")
-	}
-
-	// setup questionoptions query
-	// / get multi choice question IDs from table
-	rows, err = db.Query(getMultiQuestionsByQuestionnaireQuery, questionnaireID)
-	if err != nil {
-		fmt.Printf("%v: error on CreateForm retrieving questions - %v\n", time.Now(), err)
-		return errors.New("problem creating questionnaire")
-	}
-	i := 0
-	for rows.Next() {
-		var id int
-		rows.Scan(&id)
-		multiQuestionIndexes[mQKeys[i]] = id
-		i++
-	}
-
-	// / configure query
-	oQuery := ""
-	for i := 0; i < len(mQKeys); i++ {
-		id := multiQuestionIndexes[mQKeys[i]]
-		os := questions[mQKeys[i]].Options
-		for j := 0; j < len(os); i++ {
-			q := fmt.Sprintf(addQuestionOptionQuery, id, os[j])
-			oQuery += q
-		}
-	}
-
-	_, err = db.Exec(oQuery)
-	if err != nil {
-		fmt.Printf("%v: error on CreateForm adding multi question options - %v\n", time.Now(), err)
+		fmt.Printf("%v: error on CreateForm executing query - %v", time.Now(), err)
 		return errors.New("problem creating questionnaire")
 	}
 	return nil

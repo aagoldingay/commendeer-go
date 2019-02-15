@@ -99,7 +99,6 @@ func GetAccessCode(email, code string, db *sql.DB) (bool, error) {
 // SendCodes updates AccessCode table to find any entries without a code
 // generates codes with utilities pkg, then updates the table with the generated, unique codes
 func SendCodes(qid int, db *sql.DB) (bool, error) {
-	// TODO - AMEND TO SEND, ADD QUESTIONNAIREID
 	codeIDs := []int{}
 
 	// get count of codes to create

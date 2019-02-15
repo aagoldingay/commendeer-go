@@ -43,12 +43,25 @@ func Logout_NoError(t *testing.T) {
 	u, p := "admin1", "4dm1n123"
 	d, err := data.Login(u, p, db)
 	if err != nil {
-		t.Errorf("login errored - should not have : %v", err)
+		if err.Error() == "error on authorisation" {
+			t.Errorf("Logout_NoError: error with login db querying\n")
+		}
+		if err.Error() == "incorrect username or password" {
+			t.Errorf("Logout_NoError: login problem")
+		}
 	}
 
 	err = data.Logout(d.Code, db)
 	if err != nil {
-		t.Errorf("Logout_NoError errored - should not have : %v", err)
+		if err.Error() == "invalid code" {
+			t.Errorf("Logout_NoError: code was invalid : %v\n", d.Code)
+		}
+		if err.Error() == "error on logout" {
+			t.Errorf("Logout_NoError problem with logout db querying\n")
+		}
+		if err.Error() == "unknown code" {
+			t.Errorf("Logout_NoError code was unknown : %v", d.Code)
+		}
 	}
 }
 

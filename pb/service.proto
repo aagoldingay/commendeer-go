@@ -103,12 +103,13 @@ message MultiChoiceQuestion {
 }
 
 message CreateFormRequest {
-	string title = 1;
-	repeated ShortTextQuestion shortTextQuestions = 2;
-	repeated LongTextQuestion longTextQuestions = 3;
-	repeated MultiChoiceQuestion multiChoiceQuestions = 4;
-	repeated RadioQuestion radioQuestions = 5;
-	repeated DateQuestion dateQuestions = 6;
+	string authCode = 1;
+	string title = 2;
+	repeated ShortTextQuestion shortTextQuestions = 3;
+	repeated LongTextQuestion longTextQuestions = 4;
+	repeated MultiChoiceQuestion multiChoiceQuestions = 5;
+	repeated RadioQuestion radioQuestions = 6;
+	repeated DateQuestion dateQuestions = 7;
 }
 
 message CreateResponse {

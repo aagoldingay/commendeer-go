@@ -33,18 +33,19 @@ type server struct{}
 
 func (s *server) CreateAccessCodes(ctx context.Context, in *pb.CreateCodeRequest) (*pb.CreateCodeResponse, error) {
 	adminOnly := true
-	// if len(in.Authcode) < 20 {
-	// 	return &pb.CreateCodeResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "No authorisation"}, nil
-	// }
-	auth, err := data.CheckAuthorised(in.Authcode, adminOnly, db)
-	if !auth
 	if in.QuestionnaireID < 1 {
 		return &pb.CreateCodeResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Invalid questionnaire"}, nil
 	}
-	// s := data.SendCodes(db, in.GetQuestionnaireID)
+
+	auth, err := data.CheckAuthorised(in.Authcode, adminOnly, db)
+	if !auth {
+		return &pb.CreateCodeResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "No authorisation"}, nil
+	}
+	sent, err := data.SendCodes(int(in.QuestionnaireID), db)
 }
 
 func (s *server) CreateForm(ctx context.Context, in *pb.CreateFormRequest) (*pb.CreateResponse, error) {
+	adminOnly := true
 	qCount := len(in.DateQuestions) + len(in.LongTextQuestions) + len(in.MultiChoiceQuestions) + len(in.LongTextQuestions) + len(in.RadioQuestions)
 	if qCount == 0 {
 		return &pb.CreateResponse{Error: pb.Error_NOTACCEPTABLE, ErrorDetails: "No questions provided"}, nil
@@ -52,8 +53,12 @@ func (s *server) CreateForm(ctx context.Context, in *pb.CreateFormRequest) (*pb.
 	if in.Title == "" {
 		return &pb.CreateResponse{Error: pb.Error_NOTACCEPTABLE, ErrorDetails: "No title provided"}, nil
 	}
+	auth, err := data.CheckAuthorised(in.AuthCode, adminOnly, db)
+	if !auth {
+		return &pb.CreateResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "No authorisation"}, nil
+	}
 	nQuestions := utils.ProcessQuestions(in.ShortTextQuestions, in.LongTextQuestions, in.DateQuestions, in.RadioQuestions, in.MultiChoiceQuestions)
-	err := data.CreateForm(in.Title, nQuestions, db)
+	err = data.CreateForm(in.Title, nQuestions, db)
 	if err != nil {
 		if err.Error() == "problem creating questionnaire" {
 			return &pb.CreateResponse{Error: pb.Error_INTERNALERROR, ErrorDetails: "Problem creating questionnaire"}, nil
