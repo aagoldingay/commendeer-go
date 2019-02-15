@@ -38,10 +38,19 @@ func (s *server) CreateAccessCodes(ctx context.Context, in *pb.CreateCodeRequest
 	}
 
 	auth, err := data.CheckAuthorised(in.Authcode, adminOnly, db)
+	if err != nil {
+		if err.Error() == "invalid code" {
+			return &pb.CreateCodeResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Invalid code"}, nil
+		}
+	}
 	if !auth {
-		return &pb.CreateCodeResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "No authorisation"}, nil
+		return &pb.CreateCodeResponse{Error: pb.Error_FORBIDDEN, ErrorDetails: "No authorisation"}, nil
 	}
 	sent, err := data.SendCodes(int(in.QuestionnaireID), db)
+	if !sent {
+		return &pb.CreateCodeResponse{Error: pb.Error_NIL, ErrorDetails: "Codes did not send - confirm with administrator"}, nil
+	}
+	return &pb.CreateCodeResponse{Error: pb.Error_OK, ErrorDetails: ""}, nil
 }
 
 func (s *server) CreateForm(ctx context.Context, in *pb.CreateFormRequest) (*pb.CreateResponse, error) {
@@ -54,8 +63,13 @@ func (s *server) CreateForm(ctx context.Context, in *pb.CreateFormRequest) (*pb.
 		return &pb.CreateResponse{Error: pb.Error_NOTACCEPTABLE, ErrorDetails: "No title provided"}, nil
 	}
 	auth, err := data.CheckAuthorised(in.AuthCode, adminOnly, db)
+	if err != nil {
+		if err.Error() == "invalid code" {
+			return &pb.CreateResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Invalid code"}, nil
+		}
+	}
 	if !auth {
-		return &pb.CreateResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "No authorisation"}, nil
+		return &pb.CreateResponse{Error: pb.Error_FORBIDDEN, ErrorDetails: "No authorisation"}, nil
 	}
 	nQuestions := utils.ProcessQuestions(in.ShortTextQuestions, in.LongTextQuestions, in.DateQuestions, in.RadioQuestions, in.MultiChoiceQuestions)
 	err = data.CreateForm(in.Title, nQuestions, db)
