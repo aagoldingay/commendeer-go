@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 
 	pb "github.com/aagoldingay/commendeer-go/pb"
 	"github.com/aagoldingay/commendeer-go/server/data"
@@ -79,6 +80,34 @@ func (s *server) CreateForm(ctx context.Context, in *pb.CreateFormRequest) (*pb.
 		}
 	}
 	return &pb.CreateResponse{Error: pb.Error_OK, ErrorDetails: ""}, nil
+}
+
+func (s *server) GetFeedbackForm(ctx context.Context, in *pb.GetFormRequest) (*pb.FormResponse, error) {
+	if in.Email == "" {
+		return &pb.FormResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Invalid code or email"}, nil
+	}
+	qid, err := data.GetAccessCode(in.Email, in.AccessCode, db)
+	if err != nil {
+		if strings.Contains(err.Error(), "code not of desired length: ") || err.Error() == "code or user not found" {
+			return &pb.FormResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Invalid code or email"}, nil
+		}
+		if err.Error() == "problem on GetAccessCode" {
+			return &pb.FormResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Unable to authenticate"}, nil
+		}
+		if err.Error() == "unbound code" {
+			return &pb.FormResponse{Error: pb.Error_INTERNALERROR, ErrorDetails: "Unbound code"}, nil
+		}
+	}
+	if qid < 1 {
+		return &pb.FormResponse{Error: pb.Error_FORBIDDEN, ErrorDetails: "Code already used"}, nil
+	}
+
+	questionnaire := data.GetQuestions(qid, db)
+	if len(questionnaire.Questions) < 1 {
+		return &pb.FormResponse{Error: pb.Error_NIL, ErrorDetails: "Problem encountered"}, nil
+	}
+
+	return &pb.FormResponse{Error: pb.Error_OK, ErrorDetails: "", Title: questionnaire.Title, Questions: questionnaire.Questions}, nil
 }
 
 func (s *server) LoginUser(ctx context.Context, in *pb.LoginRequest) (*pb.LoginResponse, error) {

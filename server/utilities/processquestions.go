@@ -1,6 +1,9 @@
 package utilities
 
 import (
+	"fmt"
+	"strings"
+
 	pb "github.com/aagoldingay/commendeer-go/pb"
 )
 
@@ -15,6 +18,11 @@ type QuestionInfo struct {
 	Order        int32
 	Title        string
 	Options      []AnswerOption
+}
+
+// IntArrayToString converts array of ints to string with delimiter
+func IntArrayToString(arr []int, delim string) string {
+	return strings.Trim(strings.Replace(fmt.Sprint(arr), " ", delim, -1), "[]")
 }
 
 // ProcessQuestions normalises question requests into a generic format

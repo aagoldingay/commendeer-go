@@ -13,7 +13,7 @@ import (
 
 const (
 	codeLen          = 10
-	getCodeQuery     = "SELECT CodeID, Used FROM AccessCode WHERE Email = '%v' AND Code = '%v'"
+	getCodeQuery     = "SELECT CodeID, Used, QuestionnaireID FROM AccessCode WHERE Email = $1 AND Code = $2"
 	sendCodeQuery    = "SELECT CodeID FROM AccessCode WHERE Code IS NULL AND QuestionnaireID = $1;"
 	getCodeDataQuery = "SELECT systemusername, Email, Code FROM AccessCode WHERE Email IS NOT NULL AND Code IS NOT NULL;"
 	codeDataFile     = "testerdata.csv"
@@ -68,32 +68,36 @@ func GenerateCodeCSV(db *sql.DB) string {
 // GetAccessCode takes an email and code, then searches the database for a relevant entry
 // errors return based on incorrect code length or 'no code or user found'
 // no error when code already used
-func GetAccessCode(email, code string, db *sql.DB) (bool, error) {
+func GetAccessCode(email, code string, db *sql.DB) (int, error) {
 	if len(code) != codeLen {
-		return false, fmt.Errorf("code not of desired length: %v", codeLen)
+		return 0, fmt.Errorf("code not of desired length: %v", codeLen)
 	}
 	var (
-		id       int
-		codeUsed bool
+		id, questionnaireID int
+		codeUsed            bool
 	)
-	rows, err := db.Query(fmt.Sprintf(getCodeQuery, email, code))
+	row := db.QueryRow(getCodeQuery, email, code)
+	err := row.Scan(&id, &codeUsed, &questionnaireID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, errors.New("code or user not found")
+		}
 		fmt.Printf("%v: error on GetAccessCode query - %v\n", time.Now(), err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		rows.Scan(&id, &codeUsed)
+		return 0, errors.New("problem on GetAccessCode")
 	}
 
 	if id < 1 {
-		return false, errors.New("code or user not found")
+		return 0, errors.New("code or user not found")
+	}
+
+	if questionnaireID < 1 {
+		return 0, errors.New("unbound code")
 	}
 
 	if codeUsed {
-		return false, nil // no error if code has been used before
+		return 0, nil // no error if code has been used before
 	}
-	return true, nil // code not used before
+	return questionnaireID, nil // code not used before
 }
 
 // SendCodes updates AccessCode table to find any entries without a code

@@ -78,9 +78,12 @@ func Test_DataPackage(t *testing.T) {
 		t.Errorf("error on AuthCode cleanup - %v\n", err)
 	}
 
-	// questioncreator_test.go
+	// questions_test.go
 	t.Run("Test_CreateForm", func(t *testing.T) {
 		CreateForm(t)
+	})
+	t.Run("Test_GetQuestions", func(t *testing.T) {
+		GetQuestions(t)
 	})
 
 	// codedata_test.go
@@ -113,9 +116,9 @@ func Test_DataPackage(t *testing.T) {
 		t.Errorf("error on SendCodes cleanup - %v\n", err)
 	}
 
-	// teardown db (questioncreator_test.go)
+	// teardown db (questions_test.go)
 	_, err = db.Exec(questionnaireCleanupQuery)
 	if err != nil {
-		t.Errorf("error on QuestionCreator cleanup - %v\n", err)
+		t.Errorf("error on Questions_Test cleanup - %v\n", err)
 	}
 }

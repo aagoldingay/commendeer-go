@@ -38,17 +38,17 @@ func SecondSendCodes(t *testing.T) {
 }
 
 func GetAccessCode_Success(t *testing.T) {
-	notUsed, err := data.GetAccessCode("e@email.com", "helloworld", db)
+	qid, err := data.GetAccessCode("e@email.com", "helloworld", db)
 	if err != nil {
 		t.Errorf("Test_GetAccessCode_Success errored, shouldnt have : %v\n", err)
 	}
-	if !notUsed {
+	if qid < 1 {
 		t.Errorf("Test_GetAccessCode_Success did not succeed\n")
 	}
 }
 
 func getAccessCode_Success_Setup(db *sql.DB) {
-	iq := "INSERT INTO AccessCode (Email, SystemUsername, Code, Used, QuestionnaireID) VALUES ('e@email.com', 'fake1', 'helloworld', FALSE, 2);"
+	iq := "INSERT INTO AccessCode (Email, SystemUsername, Code, Used, QuestionnaireID) VALUES ('e@email.com', 'fake1', 'helloworld', FALSE, 1);"
 	_, err := db.Exec(iq)
 	if err != nil {
 		fmt.Printf("Test_GetAccessCode_Success problem on setup\n")
@@ -56,7 +56,7 @@ func getAccessCode_Success_Setup(db *sql.DB) {
 }
 
 func getAccessCode_Success_TD(db *sql.DB) {
-	dq := "delete from AccessCode where questionnaire id < 1"
+	dq := "delete from AccessCode where email = 'e@email.com'"
 	_, err := db.Exec(dq)
 	if err != nil {
 		fmt.Printf("Test_GetAccessCode_Success problem on cleanup\n")
@@ -64,14 +64,14 @@ func getAccessCode_Success_TD(db *sql.DB) {
 }
 
 func GetAccessCode_UsedCode(t *testing.T) {
-	notUsed, err := data.GetAccessCode("e@email.com", "helloworld", db)
-	if notUsed || err != nil {
+	qid, err := data.GetAccessCode("e@email.com", "helloworld", db)
+	if qid > 0 || err != nil {
 		t.Errorf("Test_GetAccessCode_UsedCode did not fail\n")
 	}
 }
 
 func getAccessCode_UsedCode_Setup(db *sql.DB) {
-	iq := "INSERT INTO AccessCode (Email, SystemUsername, Code, Used, QuestionnaireID) VALUES ('e@email.com', 'fake1', 'helloworld', TRUE, 2);"
+	iq := "INSERT INTO AccessCode (Email, SystemUsername, Code, Used, QuestionnaireID) VALUES ('e@email.com', 'fake1', 'helloworld', TRUE, 1);"
 	_, err := db.Exec(iq)
 	if err != nil {
 		fmt.Printf("Test_GetAccessCode_UsedCode problem on setup\n")
@@ -79,7 +79,7 @@ func getAccessCode_UsedCode_Setup(db *sql.DB) {
 }
 
 func getAccessCode_UsedCode_TD(db *sql.DB) {
-	dq := "delete from AccessCode where questionnaire id < 1"
+	dq := "delete from AccessCode where email = 'e@email.com'"
 	_, err := db.Exec(dq)
 	if err != nil {
 		fmt.Printf("Test_GetAccessCode_UsedCode problem on cleanup\n")
@@ -87,15 +87,15 @@ func getAccessCode_UsedCode_TD(db *sql.DB) {
 }
 
 func GetAccessCode_InvalidCode(t *testing.T) {
-	used, err := data.GetAccessCode("fakeemail@this.com", "invalidcode", db)
-	if used || err.Error() != "code not of desired length: 10" {
+	qid, err := data.GetAccessCode("fakeemail@this.com", "invalidcode", db)
+	if qid > 0 || err.Error() != "code not of desired length: 10" {
 		t.Errorf("GetAccessCode_InvalidCode did not fail\n")
 	}
 }
 
 func GetAccessCode_UnknownEmail(t *testing.T) {
-	used, err := data.GetAccessCode("fakeemail@this.com", "frjoghriug", db)
-	if used || err.Error() != "code or user not found" {
+	qid, err := data.GetAccessCode("fakeemail@this.com", "frjoghriug", db)
+	if qid > 0 || err.Error() != "code or user not found" {
 		t.Errorf("GetAccessCode_UnknownEmail did not fail\n")
 	}
 }
