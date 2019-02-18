@@ -50,6 +50,9 @@ func GetQuestions(t *testing.T) {
 	if q.Title != correct.Title {
 		t.Errorf("Incorrect title - expected: %v, actual:  %v\n", correct.Title, q.Title)
 	}
+	if q.Questions[0].Id != correct.Questions[0].Id {
+		t.Errorf("Incorrect id in first position - expected: %v, actual: %v\n", correct.Questions[0].Id, q.Questions[0].Id)
+	}
 	if q.Questions[0].Order != correct.Questions[0].Order {
 		t.Errorf("First question order did not match - expected: %v, actual: %vzn", correct.Questions[0].Order, q.Questions[0].Order)
 	}
