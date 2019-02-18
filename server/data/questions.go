@@ -28,9 +28,9 @@ const (
 
 // Question models a question from the database
 type Question struct {
-	id, Type, Order int // private id field used for assigning options to relevant questions
-	Title           string
-	Options         []string
+	id, qType, order int // private id field used for assigning options to relevant questions
+	title            string
+	options          []*pb.QuestionOption
 }
 
 // Questionnaire contains information related to a single questionnaire
@@ -139,7 +139,7 @@ func GetQuestions(qid int, db *sql.DB) Questionnaire {
 		)
 		rows.Scan(&id, &title)
 		q := questions[id]
-		q.Options = append(q.Options, title)
+		q.options = append(q.options, &pb.QuestionOption{Id: int32(id), Title: title})
 		questions[id] = q
 	}
 	questionnaire.Questions = orderQuestionsToArray(questions)
@@ -177,15 +177,8 @@ func orderQuestionsToArray(q map[int]Question) []*pb.Question {
 	curr := 0
 	for curr < len(q) {
 		for _, v := range q {
-			if v.Order == curr+1 {
-				e := &pb.Question{Type: int32(v.Type), Order: int32(v.Order), Title: v.Title, Options: nil}
-				if v.Options != nil {
-					ao := []*pb.AnswerOption{}
-					for _, opt := range v.Options {
-						ao = append(ao, &pb.AnswerOption{Title: opt})
-					}
-					e.Options = ao
-				}
+			if v.order == curr+1 {
+				e := &pb.Question{Id: int32(v.id), Type: int32(v.qType), Order: int32(v.order), Title: v.title, Options: v.options}
 				o = append(o, e)
 				curr++
 			}

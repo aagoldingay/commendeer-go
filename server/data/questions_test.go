@@ -35,10 +35,10 @@ func GetQuestions(t *testing.T) {
 	correct := data.Questionnaire{
 		Title: "Questionnaire 1",
 		Questions: []*pb.Question{
-			&pb.Question{Type: 3, Order: 1, Title: "Example Question"},
-			&pb.Question{Type: 2, Order: 2, Title: "Example Multi Choice Question", Options: []*pb.AnswerOption{
-				&pb.AnswerOption{Title: "Option 1"},
-				&pb.AnswerOption{Title: "Option 2"},
+			&pb.Question{Id: 1, Type: 3, Order: 1, Title: "Example Question"},
+			&pb.Question{Id: 2, Type: 2, Order: 2, Title: "Example Multi Choice Question", Options: []*pb.QuestionOption{
+				&pb.QuestionOption{Title: "Option 1"},
+				&pb.QuestionOption{Title: "Option 2"},
 			}},
 		},
 	}

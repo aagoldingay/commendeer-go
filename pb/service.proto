@@ -42,10 +42,16 @@ enum Error {
 }
 
 message Question {
-	int32 type = 1;
-	int32 order = 2;
-	string title = 3;
-	repeated AnswerOption options = 4;
+	int32 id = 1;
+	int32 type = 2;
+	int32 order = 3;
+	string title = 4;
+	repeated QuestionOption options = 5;
+}
+
+message QuestionOption {
+	int32 id = 1;
+	string title = 2;
 }
 
 message GetFormRequest {
