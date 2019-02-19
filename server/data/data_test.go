@@ -72,6 +72,7 @@ func Test_DataPackage(t *testing.T) {
 	t.Run("Test_Logout_InvalidCode", func(t *testing.T) {
 		Logout_InvalidCode(t)
 	})
+
 	// teardown db (userdata_test.go)
 	_, err = db.Exec(authcodeCleanupQuery)
 	if err != nil {
@@ -107,6 +108,11 @@ func Test_DataPackage(t *testing.T) {
 	t.Run("Test_GetAccessCode_Success", func(t *testing.T) {
 		getAccessCode_Success_Setup(db)
 		GetAccessCode_Success(t)
+		getAccessCode_Success_TD(db)
+	})
+	t.Run("Test_SubmitQuestions", func(t *testing.T) {
+		getAccessCode_Success_Setup(db)
+		SubmitResponse(t)
 		getAccessCode_Success_TD(db)
 	})
 

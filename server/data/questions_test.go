@@ -60,3 +60,20 @@ func GetQuestions(t *testing.T) {
 		t.Errorf("Incorrect number of question options - expected: %v, actual: %v\n", len(correct.Questions[1].Options), len(q.Questions[1].Options))
 	}
 }
+
+func SubmitResponse(t *testing.T) {
+	a := &pb.PostFeedbackRequest{
+		AccessCode: "helloworld", QuestionnaireID: 1, Questions: []*pb.AnsweredQuestion{
+			&pb.AnsweredQuestion{Id: 1, Type: 3, Answer: "hello", SelectedOptions: nil},
+			&pb.AnsweredQuestion{Id: 2, Type: 2, Answer: "", SelectedOptions: []*pb.SelectedOption{
+				&pb.SelectedOption{Id: 1},
+				&pb.SelectedOption{Id: 2},
+			}},
+		}}
+
+	err := data.SubmitResponse(a, db)
+
+	if err != nil {
+		t.Errorf("SubmitResponse errored: %v\n", err)
+	}
+}

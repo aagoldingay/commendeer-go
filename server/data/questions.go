@@ -12,15 +12,19 @@ import (
 )
 
 const (
-	comm                    = ", "
-	getQuestionTypesQuery   = "SELECT * FROM QuestionType"                                                                       // returned: int, string
-	getQuestionnaireQuery   = "SELECT Title FROM Questionnaire WHERE QuestionnaireID = $1"                                       // returned: string
-	getQuestionsQuery       = "SELECT QuestionID, QuestionTypeID, QuestionOrder, Title FROM Question WHERE QuestionnaireID = $1" // returned: int,  int, int, string
-	getQuestionOptionsQuery = "SELECT QuestionID, OptionDescription FROM MultiChoiceQuestionOption WHERE QuestionID IN (%v)"     // returned: int, string
+	comm                     = ", "
+	getQuestionTypesQuery    = "SELECT * FROM QuestionType"                                                                       // returned: int, string
+	getQuestionnaireQuery    = "SELECT Title FROM Questionnaire WHERE QuestionnaireID = $1"                                       // returned: string
+	getQuestionsQuery        = "SELECT QuestionID, QuestionTypeID, QuestionOrder, Title FROM Question WHERE QuestionnaireID = $1" // returned: int,  int, int, string
+	getQuestionOptionsQuery  = "SELECT QuestionID, OptionDescription FROM MultiChoiceQuestionOption WHERE QuestionID IN (%v)"     // returned: int, string
+	getQuestionsReturnIDType = "SELECT QuestionID, QuestionTypeID FROM Question WHERE QuestionnaireID = $1"                       // returns int, int
 
 	newQuestionnaireQuery = "WITH new_questionnaire as (INSERT INTO Questionnaire (Title) VALUES ('%v') returning questionnaireID), "
 	newQuestionQuery      = "new_questions as (INSERT INTO Question (questionTypeID, questionorder, title, questionnaireID) VALUES %v returning questionID, title) "
 	newOptionQuery        = "INSERT INTO multichoicequestionoption (OptionDescription, questionID) VALUES %v;"
+
+	newAnswerQuery       = "INSERT INTO Question_Result (QuestionID, CodeID, Answer) VALUES %v; "
+	newAnswerOptionQuery = "INSERT INTO MultiChoiceQuestionOption_Result (QuestionID, MultiChoiceQuestionOptionID, CodeID) VALUES %v;"
 
 	questionValues = "(%v, %v, '%v', (select questionnaireID from new_questionnaire))"         // (typeid, order, title)
 	optionValues   = "('%v', (select q.questionID from new_questions q where q.title = '%v'))" // (option-title ... = question-title))
@@ -170,6 +174,78 @@ func GetQuestionTypes(db *sql.DB) []QuestionType {
 		fmt.Printf("%v: GetQuestionTypes - no data types returned", time.Now())
 	}
 	return types
+}
+
+// SubmitResponse takes questionnaire response from the client and adds it do the database
+func SubmitResponse(f *pb.PostFeedbackRequest, db *sql.DB) error {
+	if f.QuestionnaireID < 1 {
+		return errors.New("invalid questionnaire")
+	}
+	if len(f.AccessCode) != CodeLen {
+		return errors.New("code changed")
+	}
+	codeID := GetAccessCodeID(f.AccessCode, int(f.QuestionnaireID), db)
+	if codeID < 1 {
+		return errors.New("no code found")
+	}
+
+	rows, err := db.Query(getQuestionsReturnIDType, f.QuestionnaireID)
+	if err != nil {
+		fmt.Printf("%v: SubmitResponse problem getting questions by id - %v", time.Now(), err)
+		return errors.New("problem executing")
+	}
+	defer rows.Close()
+
+	questions := make(map[int]int) // [id]type
+	var (
+		id, qType int
+	)
+	for rows.Next() {
+		rows.Scan(&id, &qType)
+		questions[id] = qType
+	}
+
+	if len(questions) != len(f.Questions) {
+		return errors.New("incorrect number of questions")
+	}
+
+	r := ""
+	or := ""
+	for i := 0; i < len(f.Questions); i++ {
+		if t, ok := questions[int(f.Questions[i].Id)]; ok && (t == 1 || t == 2) { // if type is multi choice (will have )
+			// TODO stuff with this info
+			for j := 0; j < len(f.Questions[i].SelectedOptions); j++ { // (QuestionID, MultiChoiceQuestionOptionID, CodeID)
+				if or != "" {
+					or += comm
+				}
+				or += fmt.Sprintf("(%v, %v, %v)", f.Questions[i].Id, f.Questions[i].SelectedOptions[j].Id, codeID)
+			}
+			continue
+		}
+		if _, ok := questions[int(f.Questions[i].Id)]; ok { // catch if any other type
+			// TODO stuff with this info // (QuestionID, CodeID, Answer)
+			if r != "" {
+				r += comm
+			}
+			r += fmt.Sprintf("(%v, %v, '%v')", f.Questions[i].Id, codeID, f.Questions[i].Answer)
+		}
+	}
+
+	// exec query
+	q := fmt.Sprintf(newAnswerQuery, r)
+	q += fmt.Sprintf(newAnswerOptionQuery, or)
+
+	_, err = db.Exec(q)
+	if err != nil {
+		fmt.Printf("%v: error on SubmitResponse insert answers - %v\n", time.Now(), err)
+		return errors.New("problem executing")
+	}
+
+	if !UpdateCode(codeID, db) {
+		fmt.Printf("%v: error updating code - %v\n", time.Now(), codeID)
+		return errors.New("problem executing")
+	}
+	return nil
 }
 
 func orderQuestionsToArray(q map[int]Question) []*pb.Question {

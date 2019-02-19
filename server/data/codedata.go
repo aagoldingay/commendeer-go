@@ -12,12 +12,14 @@ import (
 )
 
 const (
-	codeLen          = 10
+	// CodeLen enables external verification of desired length of a code
+	CodeLen          = 10
 	getCodeQuery     = "SELECT CodeID, Used, QuestionnaireID FROM AccessCode WHERE Email = $1 AND Code = $2"
 	sendCodeQuery    = "SELECT CodeID FROM AccessCode WHERE Code IS NULL AND QuestionnaireID = $1;"
 	getCodeDataQuery = "SELECT systemusername, Email, Code FROM AccessCode WHERE Email IS NOT NULL AND Code IS NOT NULL;"
 	codeDataFile     = "testerdata.csv"
 	update           = "UPDATE AccessCode SET Code = '%v' WHERE CodeID = %v AND QuestionnaireID = %v; "
+	setUsed          = "UPDATE AccessCode SET Used = TRUE WHERE CodeID = $1 AND USED = FALSE;"
 )
 
 // GenerateCodeCSV will return data from the database containing username, email and code per registered beta user
@@ -69,8 +71,8 @@ func GenerateCodeCSV(db *sql.DB) string {
 // errors return based on incorrect code length or 'no code or user found'
 // no error when code already used
 func GetAccessCode(email, code string, db *sql.DB) (int, error) {
-	if len(code) != codeLen {
-		return 0, fmt.Errorf("code not of desired length: %v", codeLen)
+	if len(code) != CodeLen {
+		return 0, fmt.Errorf("code not of desired length: %v", CodeLen)
 	}
 	var (
 		id, questionnaireID int
@@ -98,6 +100,26 @@ func GetAccessCode(email, code string, db *sql.DB) (int, error) {
 		return 0, nil // no error if code has been used before
 	}
 	return questionnaireID, nil // code not used before
+}
+
+// GetAccessCodeID searches the database for an id relating to a supplied code in the AccessCode table
+func GetAccessCodeID(code string, qid int, db *sql.DB) int {
+	if len(code) != CodeLen {
+		return 0
+	}
+	var id int
+	row := db.QueryRow("SELECT 1 FROM AccessCode WHERE Code = $1 AND QuestionnaireID = $2", code, qid)
+	err := row.Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0
+		}
+		fmt.Printf("%v: error on GetAccessCodeID query - %v\n", time.Now(), err)
+	}
+	if id < 1 {
+		return 0
+	}
+	return id
 }
 
 // SendCodes updates AccessCode table to find any entries without a code
@@ -133,7 +155,7 @@ func SendCodes(qid int, db *sql.DB) (bool, error) {
 	utils.Setup(-1)
 
 	// generate codes
-	codes := utils.GenerateCodes(len(codeIDs), codeLen) // quantity = total codes;
+	codes := utils.GenerateCodes(len(codeIDs), CodeLen) // quantity = total codes;
 
 	// create query to insert codes
 	var fullQuery string
@@ -150,4 +172,14 @@ func SendCodes(qid int, db *sql.DB) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// UpdateCode sets a code as used upon completing a questionnaire
+func UpdateCode(id int, db *sql.DB) bool {
+	_, err := db.Exec(setUsed, id)
+	if err != nil {
+		fmt.Printf("%v, error on UpdateCode query - %v\n", time.Now(), err)
+		return false
+	}
+	return true
 }

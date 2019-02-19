@@ -139,6 +139,15 @@ func (s *server) LogoutUser(ctx context.Context, in *pb.LogoutRequest) (*pb.Logo
 	return &pb.LogoutResponse{Error: pb.Error_OK, ErrorDetails: ""}, nil
 }
 
+func (s *server) SubmitFeedback(ctx context.Context, in *pb.PostFeedbackRequest) (*pb.PostFeedbackResponse, error) {
+	err := data.SubmitResponse(in, db)
+	if err != nil {
+		if err.Error() == "code changed" || err.Error() == "invalid questionnaire" {
+			return &pb.PostFeedbackResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Session no longer matches"}, nil
+		}
+	}
+}
+
 func dbSetup() (*sql.DB, error) {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
