@@ -142,10 +142,17 @@ func (s *server) LogoutUser(ctx context.Context, in *pb.LogoutRequest) (*pb.Logo
 func (s *server) SubmitFeedback(ctx context.Context, in *pb.PostFeedbackRequest) (*pb.PostFeedbackResponse, error) {
 	err := data.SubmitResponse(in, db)
 	if err != nil {
-		if err.Error() == "code changed" || err.Error() == "invalid questionnaire" {
+		if err.Error() == "code changed" || err.Error() == "invalid questionnaire" || err.Error() == "no code found" {
 			return &pb.PostFeedbackResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Session no longer matches"}, nil
 		}
+		if err.Error() == "problem executing" {
+			return &pb.PostFeedbackResponse{Error: pb.Error_INTERNALERROR, ErrorDetails: "Problem executing"}, nil
+		}
+		if err.Error() == "incorrect number of questions" {
+			return &pb.PostFeedbackResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Incorrect number of questions answered"}, nil
+		}
 	}
+	return &pb.PostFeedbackResponse{Error: pb.Error_OK, ErrorDetails: ""}, nil
 }
 
 func dbSetup() (*sql.DB, error) {
