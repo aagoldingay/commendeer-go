@@ -28,6 +28,10 @@ const (
 
 	questionValues = "(%v, %v, '%v', (select questionnaireID from new_questionnaire))"         // (typeid, order, title)
 	optionValues   = "('%v', (select q.questionID from new_questions q where q.title = '%v'))" // (option-title ... = question-title))
+
+	// int, int, int, string, int, string, int, string
+	//getResponsesQuery = "select q.questionorder, q.questionid, q.questiontypeid, q.title, qr.question_resultid as answer_id, qr.answer, mr.multichoicequestionoptionid as option_id, mo.optiondescription from question q left join question_result qr on qr.questionid = q.questionid left join multichoicequestionoption_result mr on mr.questionid = q.questionid left join multichoicequestionoption mo on mo.multichoicequestionoptionid = mr.multichoicequestionoptionid where questionnaireid = $1 order by q.questionorder"
+	getResponsesQuery = "select q.questionorder, q.questiontypeid, q.title, (case when qr.answer is null then '' else qr.answer end) as answer, (case when mr.multichoicequestionoptionid is null then 0 else mr.multichoicequestionoptionid end) as option_id, (case when mo.optiondescription is null then '' else mo.optiondescription end) as optiondescription from question q left join question_result qr on qr.questionid = q.questionid left join multichoicequestionoption_result mr on mr.questionid = q.questionid left join multichoicequestionoption mo on mo.multichoicequestionoptionid = mr.multichoicequestionoptionid where questionnaireid = $1 order by q.questionorder"
 )
 
 // Question models a question from the database
@@ -176,6 +180,91 @@ func GetQuestionTypes(db *sql.DB) []QuestionType {
 	return types
 }
 
+// GetResponses queries the database for results relating to the supplied questionnaire
+func GetResponses(qid int, db *sql.DB) ([]*pb.QuestionResponse, error) {
+	if qid < 1 {
+		return nil, errors.New("invalid questionnaire")
+	}
+	rows, err := db.Query(getResponsesQuery, qid)
+	if err != nil {
+		fmt.Printf("%v: error on GetResponses query - %v", time.Now(), err)
+		return nil, errors.New("problem encountered")
+	}
+	defer rows.Close()
+
+	var (
+		order, typeid, optid       int
+		title, answer, optionTitle string
+	)
+	currOrder := 0
+	var currQuestion *pb.QuestionResponse
+	qs := []*pb.QuestionResponse{}
+	qTextAs := []string{}
+	qops := make(map[int]string) // [optid]title
+	optVal := make(map[int]int)  // [optid]total
+
+	// int, int, int, string, int, string, int, string
+	for rows.Next() {
+		rows.Scan(&order, &typeid, &title, &answer, &optid, &optionTitle)
+		if order < 1 {
+			fmt.Printf("%v: error on GetResponses read rows - %v", time.Now(), err)
+			return nil, errors.New("problem encountered")
+		}
+		if currOrder != 0 && currOrder != order {
+			// commit previous to map
+			if int(currQuestion.Type) < 3 {
+				currQuestion.TextAnswers = nil
+				a := []*pb.MultiChoiceAnswers{}
+				for k, v := range qops {
+					a = append(a, &pb.MultiChoiceAnswers{Id: int32(k), Title: v, Values: int32(optVal[k])})
+				}
+				currQuestion.OptionAnswers = a
+
+			} else {
+				currQuestion.OptionAnswers = nil
+				currQuestion.TextAnswers = qTextAs
+			}
+			qs = append(qs, currQuestion)
+
+			// reset data structures
+			qTextAs, qops, optVal = []string{}, make(map[int]string), make(map[int]int)
+			currQuestion = &pb.QuestionResponse{Id: 0, Type: int32(typeid), Title: title}
+			currOrder++
+		}
+		if currOrder == 0 {
+			currQuestion = &pb.QuestionResponse{Id: 0, Type: int32(typeid), Title: title}
+			currOrder++
+		}
+
+		if int32(currQuestion.Type) < 3 {
+			if _, ok := qops[optid]; !ok {
+				qops[optid] = optionTitle
+			}
+			if _, ok := optVal[optid]; !ok {
+				optVal[optid] = 0
+			}
+			optVal[optid]++
+		} else {
+			qTextAs = append(qTextAs, answer)
+		}
+	}
+	// last commit to qs, as rows.Next() returns false after final result
+	if int(currQuestion.Type) < 3 {
+		currQuestion.TextAnswers = nil
+		a := []*pb.MultiChoiceAnswers{}
+		for k, v := range qops {
+			a = append(a, &pb.MultiChoiceAnswers{Id: int32(k), Title: v, Values: int32(optVal[k])})
+		}
+		currQuestion.OptionAnswers = a
+
+	} else {
+		currQuestion.OptionAnswers = nil
+		currQuestion.TextAnswers = qTextAs
+	}
+	qs = append(qs, currQuestion)
+	return qs, nil
+}
+
 // SubmitResponse takes questionnaire response from the client and adds it do the database
 func SubmitResponse(f *pb.PostFeedbackRequest, db *sql.DB) error {
 	if f.QuestionnaireID < 1 {
@@ -184,9 +273,12 @@ func SubmitResponse(f *pb.PostFeedbackRequest, db *sql.DB) error {
 	if len(f.AccessCode) != CodeLen {
 		return errors.New("code changed")
 	}
-	codeID := GetAccessCodeID(f.AccessCode, int(f.QuestionnaireID), db)
+	codeID, used := GetAccessCodeID(f.AccessCode, int(f.QuestionnaireID), db)
 	if codeID < 1 {
 		return errors.New("no code found")
+	}
+	if used {
+		return errors.New("feedback has already been submitted")
 	}
 
 	rows, err := db.Query(getQuestionsReturnIDType, f.QuestionnaireID)
@@ -212,8 +304,7 @@ func SubmitResponse(f *pb.PostFeedbackRequest, db *sql.DB) error {
 	r := ""
 	or := ""
 	for i := 0; i < len(f.Questions); i++ {
-		if t, ok := questions[int(f.Questions[i].Id)]; ok && (t == 1 || t == 2) { // if type is multi choice (will have )
-			// TODO stuff with this info
+		if t, ok := questions[int(f.Questions[i].Id)]; ok && (t == 1 || t == 2) { // if type is multi choice
 			for j := 0; j < len(f.Questions[i].SelectedOptions); j++ { // (QuestionID, MultiChoiceQuestionOptionID, CodeID)
 				if or != "" {
 					or += comm
@@ -223,7 +314,6 @@ func SubmitResponse(f *pb.PostFeedbackRequest, db *sql.DB) error {
 			continue
 		}
 		if _, ok := questions[int(f.Questions[i].Id)]; ok { // catch if any other type
-			// TODO stuff with this info // (QuestionID, CodeID, Answer)
 			if r != "" {
 				r += comm
 			}

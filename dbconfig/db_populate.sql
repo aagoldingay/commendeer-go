@@ -22,8 +22,8 @@ VALUES (2, 'Option 1'),
 
 -- Sets up registered users
 INSERT INTO AccessCode (Email, SystemUsername, Used, QuestionnaireID)
-VALUES ('01@email.com', 'user1', FALSE, 1),
-	('02@email.com', 'user2', FALSE, 1),
+VALUES ('01@email.com', 'user1', TRUE, 1),
+	('02@email.com', 'user2', TRUE, 1),
 	('03@email.com', 'user3', FALSE, 1),
 	('04@email.com', 'user4', FALSE, 1),
 	('05@email.com', 'user5', FALSE, 1),
@@ -72,6 +72,15 @@ VALUES ('01@email.com', 'user1', FALSE, 1),
 	('48@email.com', 'user48', FALSE, 1),
 	('49@email.com', 'user49', FALSE, 1),
 	('50@email.com', 'user50', FALSE, 1);
+
+INSERT INTO MultiChoiceQuestionOption_Result (QuestionID, MultiChoiceQuestionOptionID, CodeID) 
+VALUES (2, 1, 1),
+	(2, 2, 1),
+	(2, 2, 2);
+
+INSERT INTO Question_Result (QuestionID, CodeID, Answer) 
+VALUES (1, 1, 'answer 1'),
+	(1, 2, 'answer 2');
 
 -- Sets up registered users: admins / users
 INSERT INTO UserInfo (Username, Pass, Administrator, Salt)

@@ -23,9 +23,11 @@ service Commendeer {
 	// Logs user out, removes all session codes designated to that users
 	rpc LogoutUser (LogoutRequest) returns (LogoutResponse) {}
 
+	// Sends feedback from respondent relatin to a questionnaire likely received via GetFeedbackForm
 	rpc SubmitFeedback (PostFeedbackRequest) returns (PostFeedbackResponse) {}
 
-	// rpc ViewResponses (ViewRequest) returns (ViewResponse) {}
+	// ViewResponses displays combined answers from every sent form
+	rpc ViewResponses (ViewRequest) returns (ViewResponse) {}
 }
 
 enum Error {
@@ -39,6 +41,31 @@ enum Error {
 	NOTACCEPTABLE = 406;
 	INTERNALERROR = 500;
 	SERVICEUNAVAILABLE = 503;
+}
+
+message ViewRequest {
+	string authCode = 1;
+	int32 questionnaireID = 2;
+}
+
+message MultiChoiceAnswers {
+	int32 id = 1;
+	string title = 2;
+	int32 values = 3;
+}
+
+message QuestionResponse {
+	int32 id = 1;
+	int32 type = 2;
+	string title = 3;
+	repeated string textAnswers = 4;
+	repeated MultiChoiceAnswers optionAnswers = 5;
+}
+
+message ViewResponse {
+	Error error = 1;
+	string errorDetails = 2;
+	repeated QuestionResponse questions = 3;
 }
 
 message SelectedOption {

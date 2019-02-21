@@ -145,6 +145,9 @@ func (s *server) SubmitFeedback(ctx context.Context, in *pb.PostFeedbackRequest)
 		if err.Error() == "code changed" || err.Error() == "invalid questionnaire" || err.Error() == "no code found" {
 			return &pb.PostFeedbackResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Session no longer matches"}, nil
 		}
+		if err.Error() == "feedback has already been submitted" {
+			return &pb.PostFeedbackResponse{Error: pb.Error_FORBIDDEN, ErrorDetails: "Feedback already submitted by this user"}, nil
+		}
 		if err.Error() == "problem executing" {
 			return &pb.PostFeedbackResponse{Error: pb.Error_INTERNALERROR, ErrorDetails: "Problem executing"}, nil
 		}
@@ -153,6 +156,29 @@ func (s *server) SubmitFeedback(ctx context.Context, in *pb.PostFeedbackRequest)
 		}
 	}
 	return &pb.PostFeedbackResponse{Error: pb.Error_OK, ErrorDetails: ""}, nil
+}
+
+func (s *server) ViewResponses(ctx context.Context, in *pb.ViewRequest) (*pb.ViewResponse, error) {
+	adminOnly := false
+	auth, err := data.CheckAuthorised(in.AuthCode, adminOnly, db)
+	if err != nil {
+		if err.Error() == "invalid code" {
+			return &pb.ViewResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Invalid code"}, nil
+		}
+	}
+	if !auth {
+		return &pb.ViewResponse{Error: pb.Error_FORBIDDEN, ErrorDetails: "No authorisation"}, nil
+	}
+	d, err := data.GetResponses(int(in.QuestionnaireID), db)
+	if err != nil {
+		switch err.Error() {
+		case "invalid questionnaire":
+			return &pb.ViewResponse{Error: pb.Error_BADREQUEST, ErrorDetails: "Invalid questionnaire"}, nil
+		case "problem encountered":
+			return &pb.ViewResponse{Error: pb.Error_INTERNALERROR, ErrorDetails: "Problem encountered"}, nil
+		}
+	}
+	return &pb.ViewResponse{Error: pb.Error_OK, ErrorDetails: "Problem encountered", Questions: d}, nil
 }
 
 func dbSetup() (*sql.DB, error) {

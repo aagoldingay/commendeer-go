@@ -110,7 +110,10 @@ func Test_DataPackage(t *testing.T) {
 		GetAccessCode_Success(t)
 		getAccessCode_Success_TD(db)
 	})
-	t.Run("Test_SubmitQuestions", func(t *testing.T) {
+	t.Run("Test_GetResponses", func(t *testing.T) {
+		GetResponses(t)
+	})
+	t.Run("Test_SubmitResponse", func(t *testing.T) {
 		getAccessCode_Success_Setup(db)
 		SubmitResponse(t)
 		getAccessCode_Success_TD(db)

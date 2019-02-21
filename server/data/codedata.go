@@ -103,23 +103,26 @@ func GetAccessCode(email, code string, db *sql.DB) (int, error) {
 }
 
 // GetAccessCodeID searches the database for an id relating to a supplied code in the AccessCode table
-func GetAccessCodeID(code string, qid int, db *sql.DB) int {
+func GetAccessCodeID(code string, qid int, db *sql.DB) (int, bool) {
 	if len(code) != CodeLen {
-		return 0
+		return 0, false
 	}
-	var id int
-	row := db.QueryRow("SELECT 1 FROM AccessCode WHERE Code = $1 AND QuestionnaireID = $2", code, qid)
-	err := row.Scan(&id)
+	var (
+		id   int
+		used bool
+	)
+	row := db.QueryRow("SELECT CodeID, Used FROM AccessCode WHERE Code = $1 AND QuestionnaireID = $2", code, qid)
+	err := row.Scan(&id, &used)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0
+			return 0, false
 		}
 		fmt.Printf("%v: error on GetAccessCodeID query - %v\n", time.Now(), err)
 	}
 	if id < 1 {
-		return 0
+		return 0, false
 	}
-	return id
+	return id, used
 }
 
 // SendCodes updates AccessCode table to find any entries without a code
