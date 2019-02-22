@@ -228,11 +228,11 @@ func GetResponses(qid int, db *sql.DB) ([]*pb.QuestionResponse, error) {
 
 			// reset data structures
 			qTextAs, qops, optVal = []string{}, make(map[int]string), make(map[int]int)
-			currQuestion = &pb.QuestionResponse{Id: 0, Type: int32(typeid), Title: title}
+			currQuestion = &pb.QuestionResponse{Type: int32(typeid), Title: title}
 			currOrder++
 		}
 		if currOrder == 0 {
-			currQuestion = &pb.QuestionResponse{Id: 0, Type: int32(typeid), Title: title}
+			currQuestion = &pb.QuestionResponse{Type: int32(typeid), Title: title}
 			currOrder++
 		}
 

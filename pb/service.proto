@@ -55,11 +55,10 @@ message MultiChoiceAnswers {
 }
 
 message QuestionResponse {
-	int32 id = 1;
-	int32 type = 2;
-	string title = 3;
-	repeated string textAnswers = 4;
-	repeated MultiChoiceAnswers optionAnswers = 5;
+	int32 type = 1;
+	string title = 2;
+	repeated string textAnswers = 3;
+	repeated MultiChoiceAnswers optionAnswers = 4;
 }
 
 message ViewResponse {
