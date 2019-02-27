@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
+	"text/template"
 
 	pb "github.com/aagoldingay/commendeer-go/pb"
 	"github.com/aagoldingay/commendeer-go/server/data"
@@ -197,6 +199,31 @@ func dbSetup() (*sql.DB, error) {
 	return d, nil
 }
 
+func handler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		if len(r.FormValue("email")) < 1 || len(r.FormValue("code")) != data.CodeLen {
+			http.Error(w, "Invalid form", http.StatusBadRequest)
+			return
+		}
+		qid, err := data.GetAccessCode(r.FormValue("email"), r.FormValue("code"), db)
+		if err != nil {
+			http.Error(w, "Form problem", http.StatusBadRequest)
+			return
+		}
+		q := data.GetQuestions(qid, db)
+		data := data.HTMLQuestionnaire(q, r.FormValue("code"))
+		tmpl := template.Must(template.ParseFiles("server/tmpl/questionnaire_template.html"))
+		tmpl.Execute(w, data)
+	}
+	tmpl := template.Must(template.ParseFiles("server/tmpl/index.html"))
+	data := struct {
+		PageTitle string
+	}{
+		"Aston",
+	}
+	tmpl.Execute(w, data)
+}
+
 func main() {
 	d, err := dbSetup()
 	if err != nil {
@@ -213,16 +240,17 @@ func main() {
 
 	stop := make(chan os.Signal)
 	signal.Notify(stop, os.Interrupt)
-
-	lis, err := net.Listen("tcp", ":8080")
-	if err != nil {
-		fmt.Printf("failed to listen: %v", err)
-		os.Exit(1)
-	}
 	s := grpc.NewServer()
-	pb.RegisterCommendeerServer(s, &server{})
 
 	go func() {
+		lis, err := net.Listen("tcp", ":8080")
+		if err != nil {
+			fmt.Printf("failed to listen: %v", err)
+			os.Exit(1)
+		}
+		pb.RegisterCommendeerServer(s, &server{})
+
+		fmt.Printf("start grpc thread")
 		// Register reflection service on gRPC server.
 		reflection.Register(s)
 		if err := s.Serve(lis); err != nil {
@@ -230,7 +258,17 @@ func main() {
 			os.Exit(1)
 		}
 	}()
-	<-stop
+	// <-stop
+
+	// HTTP service
+	fmt.Printf("start http thread")
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("server/static"))))
+	http.HandleFunc("/", handler)
+
+	if err := http.ListenAndServe(":8001", nil); err != nil {
+		fmt.Printf("failed to serve: %v", err)
+		os.Exit(1)
+	}
 	fmt.Printf("shutting down service")
 
 	s.Stop()

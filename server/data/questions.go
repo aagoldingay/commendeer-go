@@ -13,11 +13,11 @@ import (
 
 const (
 	comm                     = ", "
-	getQuestionTypesQuery    = "SELECT * FROM QuestionType"                                                                       // returned: int, string
-	getQuestionnaireQuery    = "SELECT Title FROM Questionnaire WHERE QuestionnaireID = $1"                                       // returned: string
-	getQuestionsQuery        = "SELECT QuestionID, QuestionTypeID, QuestionOrder, Title FROM Question WHERE QuestionnaireID = $1" // returned: int,  int, int, string
-	getQuestionOptionsQuery  = "SELECT QuestionID, OptionDescription FROM MultiChoiceQuestionOption WHERE QuestionID IN (%v)"     // returned: int, string
-	getQuestionsReturnIDType = "SELECT QuestionID, QuestionTypeID FROM Question WHERE QuestionnaireID = $1"                       // returns int, int
+	getQuestionTypesQuery    = "SELECT * FROM QuestionType"                                                                                                // returned: int, string
+	getQuestionnaireQuery    = "SELECT Title FROM Questionnaire WHERE QuestionnaireID = $1"                                                                // returned: string
+	getQuestionsQuery        = "SELECT QuestionID, QuestionTypeID, QuestionOrder, Title FROM Question WHERE QuestionnaireID = $1"                          // returned: int,  int, int, string
+	getQuestionOptionsQuery  = "SELECT multichoicequestionoptionid, QuestionID, OptionDescription FROM MultiChoiceQuestionOption WHERE QuestionID IN (%v)" // returned: int, string
+	getQuestionsReturnIDType = "SELECT QuestionID, QuestionTypeID FROM Question WHERE QuestionnaireID = $1"                                                // returns int, int
 
 	newQuestionnaireQuery = "WITH new_questionnaire as (INSERT INTO Questionnaire (Title) VALUES ('%v') returning questionnaireID), "
 	newQuestionQuery      = "new_questions as (INSERT INTO Question (questionTypeID, questionorder, title, questionnaireID) VALUES %v returning questionID, title) "
@@ -52,6 +52,17 @@ type Questionnaire struct {
 type QuestionType struct {
 	ID   int
 	Desc string
+}
+
+// Qu used for HTML templating
+type Qu struct {
+	TypeClass, QuestionID, Title, Answer string
+}
+
+// HTMLQ models a questionnaire containing template elements required for questionnaire_template.html
+type HTMLQ struct {
+	Title, AccessCode string
+	Questions         []Qu
 }
 
 // CreateForm adds questions to the database
@@ -142,12 +153,12 @@ func GetQuestions(qid int, db *sql.DB) Questionnaire {
 
 	for rows.Next() {
 		var (
-			id    int
-			title string
+			id, oid int
+			title   string
 		)
-		rows.Scan(&id, &title)
+		rows.Scan(&oid, &id, &title)
 		q := questions[id]
-		q.options = append(q.options, &pb.QuestionOption{Id: int32(id), Title: title})
+		q.options = append(q.options, &pb.QuestionOption{Id: int32(oid), Title: title})
 		questions[id] = q
 	}
 	questionnaire.Questions = orderQuestionsToArray(questions)
@@ -336,6 +347,43 @@ func SubmitResponse(f *pb.PostFeedbackRequest, db *sql.DB) error {
 		return errors.New("problem executing")
 	}
 	return nil
+}
+
+// HTMLQuestionnaire formats a questionnaire from data pkg into HTML
+func HTMLQuestionnaire(q Questionnaire, accessCode string) HTMLQ {
+	data := HTMLQ{Title: q.Title, AccessCode: fmt.Sprintf("<input type=\"hidden\" name=\"accesscode\" value=\"%v\"/>", accessCode)}
+	questions := []Qu{}
+
+	for i := 0; i < len(q.Questions); i++ {
+		n := Qu{QuestionID: fmt.Sprint(q.Questions[i].Id), TypeClass: fmt.Sprint(q.Questions[i].Type), Title: q.Questions[i].Title}
+		switch q.Questions[i].Type {
+		case 1:
+		case 2:
+			div := "<div class=\"options\">%v</div>"
+			opts := ""
+			t := "radio"
+			if q.Questions[i].Type == 2 {
+				t = "checkbox"
+			}
+			for j := 0; j < len(q.Questions[i].Options); j++ {
+				opts += fmt.Sprintf("<input type=\"%v\" name=\"option_%v\" value=\"%v\">%v<br>", t, q.Questions[i].Options[j].Id, q.Questions[i].Options[j].Id, q.Questions[i].Options[j].Title)
+			}
+			n.Answer = fmt.Sprintf(div, opts)
+			break
+		case 3: // type="text"
+			n.Answer = fmt.Sprint("<input type=\"text\" name=\"answer\"><br>")
+			break
+		case 4:
+			n.Answer = fmt.Sprint("<textarea name=\"answer\"></textarea>")
+			break
+		case 5: // type="date"
+			n.Answer = fmt.Sprint("<input type=\"date\" name=\"answer\"><br>")
+			break
+		}
+		questions = append(questions, n)
+	}
+	data.Questions = questions
+	return data
 }
 
 func orderQuestionsToArray(q map[int]Question) []*pb.Question {

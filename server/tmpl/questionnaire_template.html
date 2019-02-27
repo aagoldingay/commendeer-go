@@ -1,0 +1,13 @@
+{{ $qs := .Questions}}
+
+<h1>{{.Title}}</h1>
+{{.AccessCode}}
+<div class="questions">
+	{{range $q := $qs}}
+		<div class="question type_{{$q.TypeClass}}">
+			<input type="hidden" name="questionid" value="{{$q.QuestionID}}">
+			<p>{{$q.Title}}</p>
+			{{$q.Answer}}
+		</div>
+	{{end}}
+</div>

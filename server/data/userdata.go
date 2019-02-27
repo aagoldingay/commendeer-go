@@ -34,7 +34,7 @@ func CheckAuthorised(code string, adminReq bool, db *sql.DB) (bool, error) {
 	if len(code) != 20 {
 		return false, errors.New("invalid code")
 	}
-	rows, err := db.Query(getAuthRowQuery)
+	rows, err := db.Query(getAuthRowQuery, code)
 	if err != nil {
 		fmt.Printf("%v: error on CheckAuthorised query - %v\n", time.Now(), err)
 	}

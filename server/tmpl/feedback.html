@@ -1,19 +1,18 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Commendeer - {{.PageTitle}}</title>
     <!--<meta name="viewport" content="width=device-width, initial-scale=1">-->
-    <!-- <link rel="stylesheet" type="text/css" href="static/css/index.css" /> -->
+    <!-- <link rel="stylesheet" type="text/css" href="static/css/feedback.css" /> -->
     <!--<script src="main.js"></script>-->
 </head>
 <body>
-    <h1>Commendeer - {{.PageTitle}}</h1>
-    <form action="/" method="POST">
-        Feedback Code: <input type="text" name="code"/><br>
-        Email: <input type="text" name="email"/><br>
-        <input type="submit" value="Go"/>
+    <form action="/thanks" method="POST">
+        {{.Body}}
+		<input type="submit" value="Submit Feedback"/>
+		<input type="hidden" name="request" value=""/>
     </form>
 </body>
 </html>
