@@ -13,8 +13,9 @@ import (
 
 const (
 	comm                     = ", "
-	getQuestionTypesQuery    = "SELECT * FROM QuestionType"                                                                                                // returned: int, string
-	getQuestionnaireQuery    = "SELECT Title FROM Questionnaire WHERE QuestionnaireID = $1"                                                                // returned: string
+	getQuestionTypesQuery    = "SELECT * FROM QuestionType"                                 // returned: int, string
+	getQuestionnaireQuery    = "SELECT Title FROM Questionnaire WHERE QuestionnaireID = $1" // returned: string
+	getQuestionnaires        = "SELECT QuestionnaireID, Title FROM Questionnaire"
 	getQuestionsQuery        = "SELECT QuestionID, QuestionTypeID, QuestionOrder, Title FROM Question WHERE QuestionnaireID = $1"                          // returned: int,  int, int, string
 	getQuestionOptionsQuery  = "SELECT multichoicequestionoptionid, QuestionID, OptionDescription FROM MultiChoiceQuestionOption WHERE QuestionID IN (%v)" // returned: int, string
 	getQuestionsReturnIDType = "SELECT QuestionID, QuestionTypeID FROM Question WHERE QuestionnaireID = $1"                                                // returns int, int
@@ -56,13 +57,19 @@ type QuestionType struct {
 
 // Qu used for HTML templating
 type Qu struct {
-	TypeClass, QuestionID, Title, Answer string
+	TypeClass, QuestionID, Title, Answer, Order string
 }
 
 // HTMLQ models a questionnaire containing template elements required for questionnaire_template.html
 type HTMLQ struct {
 	Title, AccessCode string
 	Questions         []Qu
+}
+
+// HTMLQnaireData models a single questionnaire (id and title) used for results.html
+type HTMLQnaireData struct {
+	QuestionnaireID    int
+	QuestionnaireTitle string
 }
 
 // CreateForm adds questions to the database
@@ -98,6 +105,26 @@ func CreateForm(title string, questions []utils.QuestionInfo, db *sql.DB) error 
 		return errors.New("problem creating questionnaire")
 	}
 	return nil
+}
+
+// GetQuestionnaires queries database for all questionnaires
+func GetQuestionnaires(db *sql.DB) []HTMLQnaireData {
+	rows, err := db.Query(getQuestionnaires)
+	if err != nil {
+		fmt.Printf("%v: error on GetQuestionnaires query - %v\n", time.Now(), err)
+	}
+	defer rows.Close()
+
+	var (
+		id    int
+		title string
+	)
+	qs := []HTMLQnaireData{}
+	for rows.Next() {
+		rows.Scan(&id, &title)
+		qs = append(qs, HTMLQnaireData{id, title})
+	}
+	return qs
 }
 
 // GetQuestions queries database for questionnaire information in a generic format
@@ -355,7 +382,9 @@ func HTMLQuestionnaire(q Questionnaire, accessCode string) HTMLQ {
 	questions := []Qu{}
 
 	for i := 0; i < len(q.Questions); i++ {
-		n := Qu{QuestionID: fmt.Sprint(q.Questions[i].Id), TypeClass: fmt.Sprint(q.Questions[i].Type), Title: q.Questions[i].Title}
+		n := Qu{QuestionID: fmt.Sprint(q.Questions[i].Id), TypeClass: fmt.Sprint(q.Questions[i].Type),
+			Title: q.Questions[i].Title,
+			Order: fmt.Sprint(q.Questions[i].Order)}
 		switch q.Questions[i].Type {
 		case 1:
 		case 2:

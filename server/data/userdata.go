@@ -47,7 +47,7 @@ func CheckAuthorised(code string, adminReq bool, db *sql.DB) (bool, error) {
 	for rows.Next() {
 		rows.Scan(&id, &admin)
 	}
-	if id < 1 || admin != adminReq {
+	if id < 1 || (!admin && admin != adminReq) {
 		return false, errors.New("forbidden")
 	}
 	return true, nil

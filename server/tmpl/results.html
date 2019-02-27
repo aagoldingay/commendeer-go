@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Commendeer - Results</title>
+    <!--<meta name="viewport" content="width=device-width, initial-scale=1">-->
+    <!-- <link rel="stylesheet" type="text/css" href="static/css/feedback.css" /> -->
+    <!--<script src="main.js"></script>-->
+</head>
+<body>
+	{{$os := .Questionnaires}}
+	<h1>View Results</h1>
+	<form action="/results" method="POST">
+		<select name="questionnaire">
+			{{range $o := $os}}
+				<option value="{{.QuestionnaireID}}">{{.QuestionnaireTitle}}</option>
+			{{end}}
+		</select><br>
+		<input type="hidden" name="authcode" value="{{.AuthCode}}"/>
+		<input type="submit" value="View Results"><br>
+		<input type="submit" value="Logout" formaction="/logout">
+	</form>
+</body>
+</html>

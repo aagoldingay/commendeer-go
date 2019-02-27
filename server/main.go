@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"html"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -199,22 +201,116 @@ func dbSetup() (*sql.DB, error) {
 	return d, nil
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func feedbackHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		if len(r.FormValue("email")) < 1 || len(r.FormValue("code")) != data.CodeLen {
 			http.Error(w, "Invalid form", http.StatusBadRequest)
 			return
 		}
-		qid, err := data.GetAccessCode(r.FormValue("email"), r.FormValue("code"), db)
+		qid, err := data.GetAccessCode(html.EscapeString(r.FormValue("email")), html.EscapeString(r.FormValue("code")), db)
 		if err != nil {
 			http.Error(w, "Form problem", http.StatusBadRequest)
 			return
 		}
 		q := data.GetQuestions(qid, db)
 		data := data.HTMLQuestionnaire(q, r.FormValue("code"))
-		tmpl := template.Must(template.ParseFiles("server/tmpl/questionnaire_template.html"))
+		tmpl := template.Must(template.ParseFiles("server/tmpl/feedback.html"))
 		tmpl.Execute(w, data)
+	} else {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
 	}
+}
+
+func thanksHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		r.ParseForm()
+
+		for k, v := range r.Form {
+			fmt.Printf("%s = %s\n", k, v)
+		}
+	} else {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+}
+
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		r.ParseForm()
+		name, pwd := html.EscapeString(r.FormValue("username")), html.EscapeString(r.FormValue("password"))
+		if len(name) < 1 || len(pwd) < 1 {
+			http.Error(w, "Data Missing", http.StatusBadRequest)
+			return
+		}
+
+		usr, err := data.Login(name, pwd, db)
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+		}
+
+		tmpl := template.Must(template.ParseFiles("server/tmpl/results.html"))
+
+		qData := data.GetQuestionnaires(db)
+		data := struct {
+			Questionnaires []data.HTMLQnaireData
+			AuthCode       string
+		}{
+			qData,
+			usr.Code,
+		}
+		tmpl.Execute(w, data)
+	} else {
+		tmpl := template.Must(template.ParseFiles("server/tmpl/login.html"))
+		tmpl.Execute(w, nil)
+	}
+}
+
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	authCode := html.EscapeString(r.FormValue("authcode"))
+	err := data.Logout(authCode, db)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Problem encountered", http.StatusBadRequest)
+		return
+	}
+
+	tmpl := template.Must(template.ParseFiles("server/tmpl/login.html"))
+	tmpl.Execute(w, nil)
+}
+
+func resultsHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	authCode := html.EscapeString(r.FormValue("authcode"))
+
+	auth, err := data.CheckAuthorised(authCode, false, db)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Problem encountered", http.StatusBadRequest)
+		return
+	}
+	if !auth {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+	qid, _ := strconv.ParseInt(r.FormValue("questionnaire"), 0, 64)
+
+	d, err := data.GetResponses(int(qid), db)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Problem encountered", http.StatusBadRequest)
+		return
+	}
+	tmpl := template.Must(template.ParseFiles("server/tmpl/questionnaireresult.html"))
+	data := struct {
+		Questions []*pb.QuestionResponse
+	}{
+		d,
+	}
+	tmpl.Execute(w, data)
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(template.ParseFiles("server/tmpl/index.html"))
 	data := struct {
 		PageTitle string
@@ -263,6 +359,11 @@ func main() {
 	// HTTP service
 	fmt.Printf("start http thread")
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("server/static"))))
+	http.HandleFunc("/feedback", feedbackHandler)
+	http.HandleFunc("/thanks", thanksHandler)
+	http.HandleFunc("/login", loginHandler)
+	http.HandleFunc("/results", resultsHandler)
+	http.HandleFunc("/logout", logoutHandler)
 	http.HandleFunc("/", handler)
 
 	if err := http.ListenAndServe(":8001", nil); err != nil {

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Commendeer Results</title>
+    <!--<meta name="viewport" content="width=device-width, initial-scale=1">-->
+    <!-- <link rel="stylesheet" type="text/css" href="static/css/feedback.css" /> -->
+    <!--<script src="main.js"></script>-->
+</head>
+<body>
+	<div class="results">
+		{{$qs := .Questions}}
+		<div class="questions">
+			{{range $q := $qs}}
+			<div class="question">
+					<p>{{$q.Title}}</p>
+					<ul>
+						{{if not $q.OptionAnswers}}
+							{{range $q.TextAnswers}}
+								<li>{{.}}</li>
+							{{end}}
+						{{else}}
+							{{range $o := $q.OptionAnswers}}
+								<li>{{$o.Title}} - {{$o.Values}}</li>
+							{{end}}
+						{{end}}
+					</ul>
+				</div>
+			{{end}}
+		</div>
+	</div>
+</body>
+</html>

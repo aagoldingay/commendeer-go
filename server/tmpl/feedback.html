@@ -3,16 +3,27 @@
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Commendeer - {{.PageTitle}}</title>
+    <title>Commendeer - {{.Title}}</title>
     <!--<meta name="viewport" content="width=device-width, initial-scale=1">-->
     <!-- <link rel="stylesheet" type="text/css" href="static/css/feedback.css" /> -->
     <!--<script src="main.js"></script>-->
 </head>
 <body>
+    {{ $qs := .Questions}}
     <form action="/thanks" method="POST">
-        {{.Body}}
-		<input type="submit" value="Submit Feedback"/>
-		<input type="hidden" name="request" value=""/>
+        {{.AccessCode}}
+        <h1>{{.Title}}</h1>
+        <div class="questions">
+            {{range $q := $qs}}
+                <div id="{{$q.Order}}" class="question type_{{$q.TypeClass}}">
+                    <input type="hidden" name="questionid" value="{{$q.QuestionID}}">
+                    <p>{{$q.Title}}</p>
+                    {{$q.Answer}}
+                </div>
+            {{end}}
+        </div>
+        <input type="submit" value="Submit Feedback"/>
+        <input type="hidden" name="request" value=""/>
     </form>
 </body>
 </html>
