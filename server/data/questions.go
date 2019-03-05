@@ -44,6 +44,7 @@ type Question struct {
 
 // Questionnaire contains information related to a single questionnaire
 type Questionnaire struct {
+	ID        int
 	Title     string
 	Questions []*pb.Question
 }
@@ -62,6 +63,7 @@ type Qu struct {
 
 // HTMLQ models a questionnaire containing template elements required for questionnaire_template.html
 type HTMLQ struct {
+	QID               int
 	Title, AccessCode string
 	Questions         []Qu
 }
@@ -144,7 +146,7 @@ func GetQuestions(qid int, db *sql.DB) Questionnaire {
 		fmt.Printf("%v: error on get Questionnaire by ID - %v\n", time.Now(), err)
 		return Questionnaire{}
 	}
-	questionnaire := Questionnaire{Title: qTitle}
+	questionnaire := Questionnaire{ID: qid, Title: qTitle}
 
 	// get questions
 	qrows, err := db.Query(getQuestionsQuery, qid)
@@ -378,7 +380,7 @@ func SubmitResponse(f *pb.PostFeedbackRequest, db *sql.DB) error {
 
 // HTMLQuestionnaire formats a questionnaire from data pkg into HTML
 func HTMLQuestionnaire(q Questionnaire, accessCode string) HTMLQ {
-	data := HTMLQ{Title: q.Title, AccessCode: fmt.Sprintf("<input type=\"hidden\" name=\"accesscode\" value=\"%v\"/>", accessCode)}
+	data := HTMLQ{QID: q.ID, Title: q.Title, AccessCode: fmt.Sprintf("<input type=\"hidden\" name=\"accesscode\" value=\"%v\"/>", accessCode)}
 	questions := []Qu{}
 
 	for i := 0; i < len(q.Questions); i++ {

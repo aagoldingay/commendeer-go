@@ -6,24 +6,26 @@
     <title>Commendeer - {{.Title}}</title>
     <!--<meta name="viewport" content="width=device-width, initial-scale=1">-->
     <!-- <link rel="stylesheet" type="text/css" href="static/css/feedback.css" /> -->
-    <!--<script src="main.js"></script>-->
+    <script src="static/js/feedback.js"></script>
 </head>
 <body>
     {{ $qs := .Questions}}
-    <form action="/thanks" method="POST">
+    <form id="questionnaire">
+        <input type="hidden" name="questionnaireid" value="{{.QID}}">
         {{.AccessCode}}
         <h1>{{.Title}}</h1>
         <div class="questions">
             {{range $q := $qs}}
                 <div id="{{$q.Order}}" class="question type_{{$q.TypeClass}}">
                     <input type="hidden" name="questionid" value="{{$q.QuestionID}}">
+                    <input type="hidden" name="questiontype" value="{{$q.TypeClass}}">
                     <p>{{$q.Title}}</p>
                     {{$q.Answer}}
                 </div>
             {{end}}
         </div>
-        <input type="submit" value="Submit Feedback"/>
-        <input type="hidden" name="request" value=""/>
+        <button onclick="submitFeedback()">Submit</button>
+        <input type="hidden" id="request" name="request" value=""/>
     </form>
 </body>
 </html>

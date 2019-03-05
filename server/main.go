@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html"
 	"net"
@@ -35,6 +36,21 @@ var (
 )
 
 type server struct{}
+
+// Reqdata used as an object to accept question information
+type Reqdata struct {
+	ID      int    `json:"questionid"`
+	QType   int    `json:"type"`
+	Answer  string `json:"answer"`
+	Options []int  `json:"options"`
+}
+
+// QData used as an object to accept question information
+type QData struct {
+	ID         int       `json:"id"`
+	AccessCode string    `json:"accesscode"`
+	Questions  []Reqdata `json:"questions"`
+}
 
 func (s *server) CreateAccessCodes(ctx context.Context, in *pb.CreateCodeRequest) (*pb.CreateCodeResponse, error) {
 	adminOnly := true
@@ -224,10 +240,42 @@ func feedbackHandler(w http.ResponseWriter, r *http.Request) {
 
 func thanksHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
+		// get response
 		r.ParseForm()
+		req := r.FormValue("request")
 
-		for k, v := range r.Form {
-			fmt.Printf("%s = %s\n", k, v)
+		// unmarshal response (json tags)
+		d := QData{}
+		err := json.Unmarshal([]byte(req), &d)
+		if err != nil {
+			fmt.Printf("unmarshal error : %v\n", err)
+		}
+		fmt.Println(d) //TO REMOVE
+
+		// convert to pb PostFeedbackRequest
+		r := &pb.PostFeedbackRequest{AccessCode: d.AccessCode, QuestionnaireID: int32(d.ID)}
+		qs := []*pb.AnsweredQuestion{}
+		for _, i := range d.Questions {
+			q := &pb.AnsweredQuestion{Id: int32(i.ID), Type: int32(i.QType), Answer: "", SelectedOptions: nil}
+			if i.QType < 3 {
+				os := []*pb.SelectedOption{}
+				for _, o := range i.Options {
+					op := &pb.SelectedOption{Id: int32(o)}
+					os = append(os, op)
+				}
+				q.SelectedOptions = os
+				qs = append(qs, q)
+				continue
+			}
+			q.Answer = i.Answer
+			qs = append(qs, q)
+		}
+		r.Questions = qs
+
+		// submitresponse
+		err = data.SubmitResponse(r, db)
+		if err != nil {
+			http.Error(w, "Problem encountered", http.StatusBadRequest)
 		}
 	} else {
 		http.Error(w, "Forbidden", http.StatusForbidden)
@@ -341,23 +389,23 @@ func main() {
 	go func() {
 		lis, err := net.Listen("tcp", ":8080")
 		if err != nil {
-			fmt.Printf("failed to listen: %v", err)
+			fmt.Printf("failed to listen: %v\n", err)
 			os.Exit(1)
 		}
 		pb.RegisterCommendeerServer(s, &server{})
 
-		fmt.Printf("start grpc thread")
+		fmt.Println("start grpc thread")
 		// Register reflection service on gRPC server.
 		reflection.Register(s)
 		if err := s.Serve(lis); err != nil {
-			fmt.Printf("failed to serve: %v", err)
+			fmt.Printf("failed to serve: %v\n", err)
 			os.Exit(1)
 		}
 	}()
 	// <-stop
 
 	// HTTP service
-	fmt.Printf("start http thread")
+	fmt.Println("start http thread")
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("server/static"))))
 	http.HandleFunc("/feedback", feedbackHandler)
 	http.HandleFunc("/thanks", thanksHandler)
@@ -367,10 +415,10 @@ func main() {
 	http.HandleFunc("/", handler)
 
 	if err := http.ListenAndServe(":8001", nil); err != nil {
-		fmt.Printf("failed to serve: %v", err)
+		fmt.Printf("failed to serve: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("shutting down service")
+	fmt.Printf("shutting down service\n")
 
 	s.Stop()
 }
