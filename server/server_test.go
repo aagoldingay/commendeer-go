@@ -9,27 +9,7 @@ import (
 	utils "github.com/aagoldingay/commendeer-go/server/utilities"
 )
 
-// func Test_Server(t *testing.T) {
-// 	// setup tests
-// 	d, err := dbSetup()
-// 	if err != nil {
-// 		t.Errorf("error connecting to database : %v\n", err)
-// 	}
-// 	db = d
-// 	defer d.Close()
-// 	defer db.Close()
-
-// 	err = db.Ping()
-// 	if err != nil {
-// 		t.Errorf("error connecting to database : %v\n", err)
-// 	}
-
-// 	t.Run("Test_CreateAccessCodes_Errors", func(t *testing.T) { // run before code altering UserInfo table
-// 		CreateAccessCodesErrors(t)
-// 	})
-// }
-
-// func CreateAccessCodesErrors(t *testing.T) {
+// func Test_CreateAccessCodes_Errors(t *testing.T) {
 // 	s := server{}
 // 	reqs := []*pb.CreateCodeRequest{
 // 		&pb.CreateCodeRequest{Authcode: "", QuestionnaireID: 0},                     // invalid questionnaire

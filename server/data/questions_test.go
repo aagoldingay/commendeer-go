@@ -90,6 +90,9 @@ func SubmitResponse(t *testing.T) {
 	}
 
 	err = data.SubmitResponse(a, db)
+	if err == nil {
+		t.Errorf("second submit did not error")
+	}
 	if err.Error() != "feedback has already been submitted" {
 		t.Errorf("second submit did not error")
 	}
