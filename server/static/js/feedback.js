@@ -44,17 +44,7 @@ function submitFeedback() {
     console.log(questionnaire)
     console.log(JSON.stringify(questionnaire))
 
-    //message AnsweredQuestion
-        // int32 id = 1;
-        // int32 type = 2;
-        // string answer = 3;
-        // repeated SelectedOption selectedOptions = 4;
-
-    // message SelectedOption
-    //     int32 id = 1;
-
     // set input "request" with string json
     document.getElementById("request").value = JSON.stringify(questionnaire)
     form.submit();
-    // configure XMLHttpRequest
 }

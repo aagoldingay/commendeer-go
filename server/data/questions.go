@@ -173,22 +173,24 @@ func GetQuestions(qid int, db *sql.DB) Questionnaire {
 			multiQs = append(multiQs, id)
 		}
 	}
-	ids := utils.IntArrayToString(multiQs, ", ")
-	rows, err := db.Query(fmt.Sprintf(getQuestionOptionsQuery, ids))
-	if err != nil {
-		fmt.Printf("%v: error on get question options query - %v\n", time.Now(), err)
-	}
-	defer rows.Close()
+	if len(multiQs) > 0 {
+		ids := utils.IntArrayToString(multiQs, ", ")
+		rows, err := db.Query(fmt.Sprintf(getQuestionOptionsQuery, ids))
+		if err != nil {
+			fmt.Printf("%v: error on get question options query - %v\n", time.Now(), err)
+		}
+		defer rows.Close()
 
-	for rows.Next() {
-		var (
-			id, oid int
-			title   string
-		)
-		rows.Scan(&oid, &id, &title)
-		q := questions[id]
-		q.options = append(q.options, &pb.QuestionOption{Id: int32(oid), Title: title})
-		questions[id] = q
+		for rows.Next() {
+			var (
+				id, oid int
+				title   string
+			)
+			rows.Scan(&oid, &id, &title)
+			q := questions[id]
+			q.options = append(q.options, &pb.QuestionOption{Id: int32(oid), Title: title})
+			questions[id] = q
+		}
 	}
 	questionnaire.Questions = orderQuestionsToArray(questions)
 	return questionnaire
