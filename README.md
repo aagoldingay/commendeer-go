@@ -21,4 +21,7 @@ Import packages:
 
 ```
 go get -u github.com/lib/pq
+go get -u google.golang.org/grpc
+go get -u google.golang.org/grpc/reflection
+go get -u github.com/kabukky/httpscerts
 ```

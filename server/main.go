@@ -9,10 +9,11 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
 	"strconv"
 	"strings"
 	"text/template"
+
+	"github.com/kabukky/httpscerts"
 
 	pb "github.com/aagoldingay/commendeer-go/pb"
 	"github.com/aagoldingay/commendeer-go/server/data"
@@ -382,8 +383,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	stop := make(chan os.Signal)
-	signal.Notify(stop, os.Interrupt)
+	// generate test certificate
+	err = httpscerts.Check("cert.pem", "key.pem")
+	if err != nil {
+		err = httpscerts.Generate("cert.pem", "key.pem", "127.0.0.1:8001")
+		if err != nil {
+			fmt.Printf("failed to generate https certificate: %v\n", err)
+			os.Exit(1)
+		}
+	}
+	// end generate test certificate
+
 	s := grpc.NewServer()
 
 	go func() {
@@ -402,7 +412,6 @@ func main() {
 			os.Exit(1)
 		}
 	}()
-	// <-stop
 
 	// HTTP service
 	fmt.Println("start http thread")
@@ -414,9 +423,12 @@ func main() {
 	http.HandleFunc("/logout", logoutHandler)
 	http.HandleFunc("/", handler)
 
-	if err := http.ListenAndServe(":8001", nil); err != nil {
-		fmt.Printf("failed to serve: %v\n", err)
-		os.Exit(1)
+	// if err := http.ListenAndServe(":8001", nil); err != nil {
+	// 	fmt.Printf("failed to serve: %v\n", err)
+	// 	os.Exit(1)
+	// }
+	if err = http.ListenAndServeTLS(":8001", "cert.pem", "key.pem", nil); err != nil {
+		fmt.Printf("failed to serve http : %v\n", err)
 	}
 	fmt.Printf("shutting down service\n")
 
