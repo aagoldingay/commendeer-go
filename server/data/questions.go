@@ -392,25 +392,25 @@ func HTMLQuestionnaire(q Questionnaire, accessCode string) HTMLQ {
 		switch q.Questions[i].Type {
 		case 1:
 		case 2:
-			div := "<div class=\"options\">%v</div>"
+			div := "<div class=\"options form-check\">%v</div>"
 			opts := ""
 			t := "radio"
 			if q.Questions[i].Type == 2 {
 				t = "checkbox"
 			}
 			for j := 0; j < len(q.Questions[i].Options); j++ {
-				opts += fmt.Sprintf("<input type=\"%v\" name=\"option_%v\" value=\"%v\">%v<br>", t, q.Questions[i].Options[j].Id, q.Questions[i].Options[j].Id, q.Questions[i].Options[j].Title)
+				opts += fmt.Sprintf("<input type=\"%v\" class=\"form-check-input\" name=\"option_%v\" value=\"%v\"><label class=\"form-check-label\">%v</label><br>", t, q.Questions[i].Options[j].Id, q.Questions[i].Options[j].Id, q.Questions[i].Options[j].Title)
 			}
 			n.Answer = fmt.Sprintf(div, opts)
 			break
 		case 3: // type="text"
-			n.Answer = fmt.Sprint("<input type=\"text\" name=\"answer\"><br>")
+			n.Answer = fmt.Sprint("<div class=\"form-group w-25\"> <input type=\"text\" class=\"form-control\" name=\"answer\"></div>")
 			break
 		case 4:
-			n.Answer = fmt.Sprint("<textarea name=\"answer\"></textarea>")
+			n.Answer = fmt.Sprint("<div class=\"form-group w-25\"> <textarea class=\"form-control\" name=\"answer\"></textarea></div>")
 			break
 		case 5: // type="date"
-			n.Answer = fmt.Sprint("<input type=\"date\" name=\"answer\"><br>")
+			n.Answer = fmt.Sprint("<div class=\"form-group w-25\"> <input type=\"date\" class=\"form-control\" name=\"answer\"></div>")
 			break
 		}
 		questions = append(questions, n)

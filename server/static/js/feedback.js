@@ -24,14 +24,14 @@ function submitFeedback() {
         
         if (question.type < 3) { // if question = multichoice
             var opts = questions[i].children[3].children;
-            for (var j = 0; j < opts.length; j+=2) {
+            for (var j = 0; j < opts.length; j+=3) {
                 if (opts[j].checked) {
                     var optval = parseInt(opts[j].value, 10);
                     question.options.push(optval)
                 }
             }
         } else {
-            question.answer = questions[i].children[3].value
+            question.answer = questions[i].children[3].children[0].value
         }
         query.push(question)
     }

@@ -6,20 +6,24 @@
     <title>Commendeer - Results</title>
     <!--<meta name="viewport" content="width=device-width, initial-scale=1">-->
     <!-- <link rel="stylesheet" type="text/css" href="static/css/feedback.css" /> -->
-    <!--<script src="main.js"></script>-->
+	<!--<script src="main.js"></script>-->
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="static/css/main.css">
 </head>
 <body>
 	{{$os := .Questionnaires}}
 	<h1>View Results</h1>
 	<form action="/results" method="POST">
-		<select name="questionnaire">
+		<div class="form-group w-25">
+			<select class="form-control" name="questionnaire">
 			{{range $o := $os}}
 				<option value="{{.QuestionnaireID}}">{{.QuestionnaireTitle}}</option>
 			{{end}}
-		</select><br>
+			</select>
+    	</div>
 		<input type="hidden" name="authcode" value="{{.AuthCode}}"/>
-		<input type="submit" value="View Results"><br>
-		<input type="submit" value="Logout" formaction="/logout">
+		<input type="submit" class="btn btn-success btn-lg active" aria-pressed="true" value="View Results"><br><br>
+		<input type="submit" class="btn btn-danger btn-lg active" aria-pressed="true" value="Logout" formaction="/logout">
 	</form>
 </body>
 </html>

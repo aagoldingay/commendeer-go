@@ -5,15 +5,20 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<title>Commendeer - Login</title>
 		<!--<meta name="viewport" content="width=device-width, initial-scale=1">-->
-		<!-- <link rel="stylesheet" type="text/css" href="static/css/admin.css" /> -->
-		<!--<script src="main.js"></script>-->
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    	<link rel="stylesheet" href="static/css/main.css">
 	</head>
 <body>
 	<h2>Login</h2>
 	<form action="/login" method="POST">
-		Username: <input type="text" name="username"> <br>
-		Password: <input type="password" name="password"> <br>
-		<input type="submit" value="Login"/>
+		<div class="form-group w-25">
+			<label> Username: </label>
+			<input type="text" class="form-control" name="username">
+		</div>
+		<div class="form-group w-25">
+			Password: <input type="password" class="form-control" name="password">
+		</div>
+			<input type="submit" class="btn btn-success btn-lg active" aria-pressed="true" value="Login"/>
 		<input type="hidden" name="loginrequest" value="true"/>
 	</form>
 </body>

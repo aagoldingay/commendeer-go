@@ -5,7 +5,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Commendeer - {{.Title}}</title>
     <!--<meta name="viewport" content="width=device-width, initial-scale=1">-->
-    <!-- <link rel="stylesheet" type="text/css" href="static/css/feedback.css" /> -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="static/css/main.css">
     <script src="static/js/feedback.js"></script>
 </head>
 <body>
@@ -19,12 +20,12 @@
                 <div id="{{$q.Order}}" class="question type_{{$q.TypeClass}}">
                     <input type="hidden" name="questionid" value="{{$q.QuestionID}}">
                     <input type="hidden" name="questiontype" value="{{$q.TypeClass}}">
-                    <p>{{$q.Title}}</p>
+                    <h6>{{$q.Title}}</h6>
                     {{$q.Answer}}
                 </div>
             {{end}}
         </div>
-        <button onclick="submitFeedback()">Submit</button>
+        <button onclick="submitFeedback()" class="btn btn-success btn-lg active" aria-pressed="true">Submit</button>
         <input type="hidden" id="request" name="request" value=""/>
     </form>
 </body>
